@@ -1,12 +1,14 @@
 import { TouchableOpacity, Text } from "react-native"
+import { useTheme } from "react-native-paper"
 
 
 
 function Button({ title, onPress }) {
+	const theme = useTheme()
 	return (
 		<TouchableOpacity
 			style={{
-				backgroundColor: '#202020',
+				backgroundColor: theme.colors.tertiary,
 				height: 52,
 				borderRadius: 26,
 				alignItems: 'center',

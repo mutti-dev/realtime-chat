@@ -24,6 +24,15 @@ function thumbnail(url) {
 	}
 }
 
+function image(url) {
+	if (!url) {
+		return
+	}
+	return {
+		uri: 'http://' + ADDRESS + url
+	}
+}
+
 
 function formatTime(date) {
 	if (date === null)  {
@@ -60,4 +69,4 @@ function formatTime(date) {
 	return `${y}y ago`
 }
 
-export default { log, thumbnail, formatTime }
+export default { log, thumbnail, formatTime, image }

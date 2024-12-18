@@ -71,8 +71,7 @@ def jscFlavor = 'org.webkit:android-jsc:+'
 android {
     ndkVersion rootProject.ext.ndkVersion
 
-    // compileSdkVersion rootProject.ext.compileSdkVersion
-    compileSdkVersion 33
+    compileSdkVersion rootProject.ext.compileSdkVersion
 
     namespace "com.realtimechat"
     defaultConfig {

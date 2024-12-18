@@ -138,7 +138,9 @@ class MessageSerializer(serializers.ModelSerializer):
 			'id',
 			'is_me',
 			'text',
-			'created'
+			'created',
+			'file',
+			'is_ai',
 		]
 
 	def get_is_me(self, obj):

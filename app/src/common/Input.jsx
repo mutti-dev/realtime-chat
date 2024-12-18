@@ -1,7 +1,9 @@
 import { View, Text, TextInput } from "react-native"
+import { useTheme } from "react-native-paper"
 
 
 function Input({ title, value, error, setValue, setError, secureTextEntry=false }) {
+	const theme = useTheme()
 	return (
 		<View>
 			<Text 
@@ -16,7 +18,7 @@ function Input({ title, value, error, setValue, setError, secureTextEntry=false 
 			<TextInput
 				autoCapitalize="none"
 				autoComplete="off"
-				color= 'black'
+				color="black"
 				onChangeText={text => {
 					setValue(text)
 					if (error) {
@@ -25,7 +27,7 @@ function Input({ title, value, error, setValue, setError, secureTextEntry=false 
 				}}
 				secureTextEntry={secureTextEntry}
 				style={{
-					backgroundColor: '#e1e2e4',
+					backgroundColor: theme.colors.background,
 					borderWidth: 1,
 					borderColor: error ? '#ff5555' : 'transparent',
 					borderRadius: 26,

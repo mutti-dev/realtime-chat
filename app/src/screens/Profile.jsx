@@ -1,14 +1,18 @@
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome"
+import { useLayoutEffect, useState } from "react"
 import { View, Text, Image, TouchableOpacity } from "react-native"
 import { launchImageLibrary } from 'react-native-image-picker'
 import useGlobal from "../core/global"
 import utils from "../core/utils"
 import Thumbnail from "../common/Thumbnail"
+import { useTheme } from "react-native-paper";
+import CustomLoader from "../common/CustomLoader"
 
 
 
 
 function ProfileImage() {
+	const theme = useTheme();
 	const uploadThumbnail = useGlobal(state => state.uploadThumbnail)
 	const user = useGlobal(state => state.user)
 
@@ -33,7 +37,7 @@ function ProfileImage() {
 					position: 'absolute',
 					bottom: 0,
 					right: 0,
-					backgroundColor: '#202020',
+					backgroundColor: theme.colors.background,
 					width: 40,
 					height: 40,
 					borderRadius: 20,
@@ -46,7 +50,7 @@ function ProfileImage() {
 				<FontAwesomeIcon
 					icon='pencil'
 					size={15}
-					color='#d0d0d0'
+					color={theme.colors.text}
 				/>
 			</View>
 		</TouchableOpacity>
@@ -55,6 +59,7 @@ function ProfileImage() {
 
 
 function ProfileLogout() {
+	const theme = useTheme();
 	const logout = useGlobal(state => state.logout)
 
 	return (
@@ -67,20 +72,20 @@ function ProfileLogout() {
 				alignItems: 'center',
 				justifyContent: 'center',
 				paddingHorizontal: 26,
-				backgroundColor: '#202020',
+				backgroundColor: theme.colors.primary,
 				marginTop: 40
 			}}
 		>
 			<FontAwesomeIcon
 				icon='right-from-bracket'
 				size={20}
-				color='#d0d0d0'
+				color={theme.colors.text}
 				style={{ marginRight: 12}}
 			/>
 			<Text
 				style={{
 					fontWeight: 'bold',
-					color: '#d0d0d0'
+					color: theme.colors.text
 				}}
 			>
 				Logout
@@ -92,7 +97,10 @@ function ProfileLogout() {
 
 
 function ProfileScreen() {
+	const theme = useTheme();
 	const user = useGlobal(state => state.user)
+	const [loading, setLoading] = useState(false);
+	
 	return (
 		<View
 			style={{
@@ -106,7 +114,7 @@ function ProfileScreen() {
 			<Text 
 				style={{
 					textAlign: 'center',
-					color: '#303030',
+					color: theme.colors.text,
 					fontSize: 20,
 					fontWeight: 'bold',
 					marginBottom: 6
@@ -117,7 +125,7 @@ function ProfileScreen() {
 			<Text
 				style={{
 					textAlign: 'center',
-					color: '#606060',
+					color: theme.colors.secondary,
 					fontSize: 14
 				}}
 			>

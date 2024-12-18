@@ -12,8 +12,10 @@ import Button from "../common/Button"
 import api from "../core/api"
 import utils from "../core/utils"
 import useGlobal from "../core/global"
+import CustomLoader from "../common/CustomLoader"
 
 function SignUpScreen({ navigation }) {
+	const [loading, setLoading] = useState(false);
 	const [username,  setUsername]  = useState('')
 	const [firstName, setFirstName] = useState('')
 	const [lastName,  setLastName]  = useState('')
@@ -35,6 +37,7 @@ function SignUpScreen({ navigation }) {
 	}, [])
 
 	function onSignUp() {
+		setLoading(true);
 		// Check username
 		const failUsername = !username || username.length < 5
 		if (failUsername) {
@@ -105,6 +108,9 @@ function SignUpScreen({ navigation }) {
 			}
 			console.log(error.config);
 		})
+		.finally(() => {
+            setLoading(false); // Reset loading state
+        });
 	}
 
 	return (
@@ -123,6 +129,8 @@ function SignUpScreen({ navigation }) {
 						>
 							Sign Up
 						</Text>
+
+						{loading && <CustomLoader message="Signing in, please wait..." />}
 
 						<Input 
 							title='Username' 

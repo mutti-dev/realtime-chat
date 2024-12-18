@@ -1,3 +1,6 @@
 from django.test import TestCase
 
-# Create your tests here.
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI()
+llm.invoke("Hello, world!")

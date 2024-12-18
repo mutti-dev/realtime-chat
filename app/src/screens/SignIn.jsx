@@ -15,10 +15,14 @@ import Button from "../common/Button"
 import api from "../core/api"
 import utils from "../core/utils"
 import useGlobal from "../core/global"
+import { useTheme } from "react-native-paper"
+import CustomLoader from "../common/CustomLoader"
 
 
 
 function SignInScreen({ navigation }) {
+	const [loading, setLoading] = useState(false);
+	const theme = useTheme();
 	const [username, setUsername] = useState('')
 	const [password, setPassword] = useState('')
 
@@ -34,56 +38,64 @@ function SignInScreen({ navigation }) {
 	}, [])
 
 	function onSignIn() {
-		console.log('onSignIn:', username, password)
+		console.log('onSignIn:', username, password);
+    setLoading(true);
 
-		// Check username
-		const failUsername = !username
-		if (failUsername) {
-			setUsernameError('Username not provided')
-		}
-		// Check password
-		const failPassword = !password
-		if (failPassword) {
-			setPasswordError('Password not provided')
-		}
-		// Break out of this function if there were any issues
-		if (failUsername || failPassword) {
-			return
-		}
-		// Make signin request
-		api({
-			method: 'POST',
-			url: '/chat/signin/',
-			data: {
-				username: username,
-				password: password
-			}
-		})
-		.then(response => {
-			utils.log('Sign In:', response.data)
-			
-			const credentials = {
-				username: username,
-				password: password
-			}
-			login(
-				credentials, 
-				response.data.user,
-				response.data.tokens
-			)
-		})
-		.catch(error => {
-			if (error.response) {
-				console.log(error.response.data);
-				console.log(error.response.status);
-				console.log(error.response.headers);
-			} else if (error.request) {
-				console.log(error.request);
-			} else {
-				console.log('Error', error.message);
-			}
-			console.log(error.config);
-		})
+    // Check for missing username and password
+    const failUsername = !username;
+    const failPassword = !password;
+
+    if (failUsername) {
+        setUsernameError('Username not provided');
+    }
+    if (failPassword) {
+        setPasswordError('Password not provided');
+    }
+
+    // Exit if there are errors
+    if (failUsername || failPassword) {
+        setLoading(false); // Ensure loading state is reset
+        return;
+    }
+
+    // Make sign-in request
+    api({
+        method: 'POST',
+        url: '/chat/signin/',
+        data: {
+            username,
+            password,
+        },
+    })
+        .then((response) => {
+            console.log('Sign In Success:', response.data);
+
+            const credentials = {
+                username,
+                password,
+            };
+
+            login(
+                credentials,
+                response.data.user,
+                response.data.tokens
+            );
+        })
+        .catch((error) => {
+            if (error.response) {
+                console.error('Response Error:', error.response.data);
+                console.error('Status:', error.response.status);
+                console.error('Headers:', error.response.headers);
+            } else if (error.request) {
+                console.error('Request Error:', error.request);
+            } else {
+                console.error('Error:', error.message);
+            }
+            console.error('Config:', error.config);
+        })
+        .finally(() => {
+            setLoading(false); // Reset loading state
+        });
 	}
 
 	return (
@@ -97,7 +109,8 @@ function SignInScreen({ navigation }) {
 							paddingHorizontal: 20
 						}}
 					>
-						<Title text='RealtimeChat' color='#202020' />
+						<Title text='Chat' color={theme.colors.text} />
+						{loading && <CustomLoader message="Signing in, please wait..." />}
 
 						<Input 
 							title='Username'

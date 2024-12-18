@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-4j3g5p%*n&%4jmd50$!7yd63_%nm*@qk2k)gafe*35zp=y1k%@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '10.0.2.2', '192.168.18.77']
+ALLOWED_HOSTS = ['localhost', '10.0.2.2', '192.168.18.77', '192.168.0.103']
 
 
 AUTH_USER_MODEL = 'chat.User'
@@ -48,7 +48,7 @@ ASGI_APPLICATION = 'core.asgi.application'
 # 	'default': {
 # 		'BACKEND': 'channels_redis.core.RedisChannelLayer',
 # 		'CONFIG': {
-# 			'hosts': [('192.168.18.77', 6379)]
+# 			'hosts': [('192.168.0.103', 6379)]
 # 		}
 # 	}
 # }
@@ -158,6 +158,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

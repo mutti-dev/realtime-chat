@@ -49,7 +49,7 @@ function SplashScreen({ navigation }) {
 		>
 			<StatusBar barStyle='light-content' />
 			<Animated.View style={[{ transform: [{ translateY }] }]}>
-				<Title text='RealtimeChat' color='white' />
+				<Title text='Chat App' color='white' />
 			</Animated.View>
 		</SafeAreaView>
 	)

@@ -17,9 +17,29 @@ from .serializers import (
 	MessageSerializer
 )
 
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_community.llms import Ollama
+import streamlit as st
+import os
+from dotenv import load_dotenv
+from langchain_community.vectorstores import Chroma
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.chat_models import ChatOllama
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.prompts import PromptTemplate
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import create_retrieval_chain
+import sys
+
+
 
 
 class ChatConsumer(WebsocketConsumer):
+
+	
 
 	def connect(self):
 		user = self.scope['user']
@@ -89,7 +109,78 @@ class ChatConsumer(WebsocketConsumer):
 		elif data_source == 'thumbnail':
 			self.receive_thumbnail(data)
 
+		elif data_source == 'file':
+			self.receive_file(data)
 
+
+		elif data_source == 'ai.query':
+			self.receive_ai_query(data)
+			
+			
+			
+	
+
+	def process_ai_query(self, question):
+		try:
+            # Initialize Langchain components
+			prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("system", "You are a anngry assistant.Your name is Mutti. Respond to user queries."),
+                    ("user", f"Question: {question}"),
+                ]
+            )
+			llm = Ollama(model="llama3.2")
+			output_parser = StrOutputParser()
+             #Load vector store
+			 # embedding = FastEmbedEmbeddings()
+			 # vector_store = Chroma(persist_directory="./sql_chroma_db", embedding_function=embedding)
+            # Build the chain
+			chain = prompt | llm | output_parser
+            
+            # Generate a response
+			response = chain.invoke({"question": question})
+			print("Response", response)
+			return response
+		except Exception as e:
+			print(f"Error processing AI query: {e}")
+			return "I'm sorry, there was an error with the AI agent."
+		
+
+	def rag_chain(self):
+		# Use the ChatOllama model
+		model = ChatOllama(model="llama3.2")
+		
+		# Define the prompt template
+		prompt = PromptTemplate.from_template(
+			"""
+			<s> [Instructions] You are a friendly assistant. Answer the question based only on the following context. 
+			If you don't know the answer, then reply, No Context available for this question {input}. [/Instructions] </s> 
+			[Instructions] Question: {input} 
+			Context: {context} 
+			Answer: [/Instructions]
+			"""
+		)
+
+		# Load the vector store (Chroma) for document retrieval
+		embedding = FastEmbedEmbeddings()
+		vector_store = Chroma(persist_directory="./sql_chroma_db", embedding_function=embedding)
+
+		# Create the retriever for similarity-based search
+		retriever = vector_store.as_retriever(
+			search_type="similarity_score_threshold",
+			search_kwargs={
+				"k": 3,
+				"score_threshold": 0.5,
+			},
+		)
+
+		# Create a document chain that generates answers based on retrieved context
+		document_chain = create_stuff_documents_chain(model, prompt)
+		
+		# Create the final retrieval chain that combines the retriever and the document chain
+		chain = create_retrieval_chain(retriever, document_chain)
+
+		return chain
 
 	def receive_friend_list(self, data):
 		user = self.scope['user']
@@ -115,6 +206,27 @@ class ChatConsumer(WebsocketConsumer):
 			many=True)
 		# Send data back to requesting user
 		self.send_group(user.username, 'friend.list', serialized.data)
+		
+		
+		
+	def receive_ai_query(self, data):
+		user = self.scope['user']
+		question = data.get('message')
+		
+		if not question:
+			print("Error: No question provided for AI agent here.")
+			return
+
+        # Process the AI response
+		ai_response = self.process_ai_query(question)
+
+        # Broadcast AI response back to the group
+		response_data = {
+            "username": "AI Agent",  # Static AI agent identity
+            "message": ai_response,
+        }
+		self.send_group(user.username, "ai.response", response_data)
+
 
 
 
@@ -164,34 +276,61 @@ class ChatConsumer(WebsocketConsumer):
 		self.send_group(user.username, 'message.list', data)
 
 
-
 	def receive_message_send(self, data):
 		user = self.scope['user']
 		connectionId = data.get('connectionId')
 		message_text = data.get('message')
+		file_data = message_text.get('file') if isinstance(message_text, dict) else None
+		print('file data:', file_data)
+		file_name = "response.json"
+		with open(file_name, "w") as file:
+			json.dump(file_data, file, indent=4)
+
+		print(f"Response saved in {file_name}")
+
 		try:
 			connection = Connection.objects.get(id=connectionId)
 		except Connection.DoesNotExist:
-			print('Error: couldnt find connection')
+			print('Error: couldn\'t find connection')
 			return
-		
-		message = Message.objects.create(
-			connection=connection,
-			user=user,
-			text=message_text
-		)
+
+		# Check if a file is provided
+		if file_data:
+			try:
+				# Extract necessary fields from file_data
+				base64_data = file_data['data']  # The raw base64 string
+				file_name = file_data['name']   # Original file name
+				mime_type = file_data['type']   # MIME type of the file
+
+				# Decode the base64 string to file content
+				file_content = ContentFile(base64.b64decode(base64_data), name=file_name)
+
+				print('Saving file:', file_name)
+
+				# Save the message with the file
+				message = Message.objects.create(
+					connection=connection,
+					user=user,
+					file=file_content
+				)
+			except Exception as e:
+				print(f"Error while saving file: {e}")
+				return
+		else:
+			# Save the message with text only
+			message = Message.objects.create(
+				connection=connection,
+				user=user,
+				text=message_text
+			)
 
 		# Get recipient friend
-		recipient = connection.sender
-		if connection.sender == user:
-			recipient = connection.receiver
+		recipient = connection.sender if connection.sender != user else connection.receiver
 
 		# Send new message back to sender
 		serialized_message = MessageSerializer(
 			message,
-			context={
-				'user': user
-			}
+			context={'user': user}
 		)
 		serialized_friend = UserSerializer(recipient)
 		data = {
@@ -203,9 +342,7 @@ class ChatConsumer(WebsocketConsumer):
 		# Send new message to receiver
 		serialized_message = MessageSerializer(
 			message,
-			context={
-				'user': recipient
-			}
+			context={'user': recipient}
 		)
 		serialized_friend = UserSerializer(user)
 		data = {
@@ -213,6 +350,7 @@ class ChatConsumer(WebsocketConsumer):
 			'friend': serialized_friend.data
 		}
 		self.send_group(recipient.username, 'message.send', data)
+
 
 
 
@@ -363,6 +501,44 @@ class ChatConsumer(WebsocketConsumer):
 		serialized = UserSerializer(user)
 		# Send updated user data including new thumbnail 
 		self.send_group(self.username, 'thumbnail', serialized.data)
+
+
+	def receive_file(self, data):  # Rename if "thumbnail" isn't the source
+		user = self.scope['user']
+		connection_id = data.get('connectionId')
+		file_base64 = data.get('base64')
+		filename = data.get('filename')
+		
+		try:
+			connection = Connection.objects.get(id=connection_id)
+			
+		except Connection.DoesNotExist:
+			print('Error: Connection not found')
+			return
+
+        # Decode the file
+		file_data = base64.b64decode(file_base64)
+		file_name = f"uploads/{filename}"
+		file = ContentFile(file_data, name=file_name)
+
+        # Save the message with the file
+		message = Message.objects.create(
+            connection=connection,
+            user=user,
+            file=file
+        )
+
+        # Notify the sender
+		serialized_message = MessageSerializer(
+            message, context={'user': user}
+        )
+		self.send_group(user.username, 'message.send', serialized_message.data)
+		
+		recipient = connection.sender if connection.sender != user else connection.receiver
+		serialized_message = MessageSerializer(
+            message, context={'user': recipient}
+        )
+		self.send_group(recipient.username, 'message.send', serialized_message.data)
 
 
 
