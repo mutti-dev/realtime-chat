@@ -1,11 +1,11 @@
 import { useLayoutEffect, useState } from "react"
-import { 
+import {
 	Keyboard,
 	KeyboardAvoidingView,
-	SafeAreaView, 
-	Text, 
-	View, 
-	TouchableWithoutFeedback 
+	SafeAreaView,
+	Text,
+	View,
+	TouchableWithoutFeedback
 } from "react-native"
 import Input from "../common/Input"
 import Button from "../common/Button"
@@ -13,18 +13,21 @@ import api from "../core/api"
 import utils from "../core/utils"
 import useGlobal from "../core/global"
 import CustomLoader from "../common/CustomLoader"
+import LinearGradient from "react-native-linear-gradient";
+import { useTheme } from "react-native-paper"
 
 function SignUpScreen({ navigation }) {
+	const theme = useTheme();
 	const [loading, setLoading] = useState(false);
-	const [username,  setUsername]  = useState('')
+	const [username, setUsername] = useState('')
 	const [firstName, setFirstName] = useState('')
-	const [lastName,  setLastName]  = useState('')
+	const [lastName, setLastName] = useState('')
 	const [password1, setPassword1] = useState('')
 	const [password2, setPassword2] = useState('')
 
-	const [usernameError,  setUsernameError]  = useState('')
+	const [usernameError, setUsernameError] = useState('')
 	const [firstNameError, setFirstNameError] = useState('')
-	const [lastNameError,  setLastNameError]  = useState('')
+	const [lastNameError, setLastNameError] = useState('')
 	const [password1Error, setPassword1Error] = useState('')
 	const [password2Error, setPassword2Error] = useState('')
 
@@ -65,10 +68,10 @@ function SignUpScreen({ navigation }) {
 		}
 		// Break out of the fucntion if there were any issues
 		if (failUsername ||
-				failFirstName ||
-				failLastName ||
-				failPassword1 ||
-				failPassword2) {
+			failFirstName ||
+			failLastName ||
+			failPassword1 ||
+			failPassword2) {
 			return
 		}
 
@@ -83,112 +86,121 @@ function SignUpScreen({ navigation }) {
 				password: password1
 			}
 		})
-		.then(response => {
-			utils.log('Sign Up:', response.data)
-			
-			const credentials = {
-				username: username,
-				password: password1
-			}
-			login(
-				credentials,
-				response.data.user,
-				response.data.tokens
-			)
-		})
-		.catch(error => {
-			if (error.response) {
-				console.log(error.response.data);
-				console.log(error.response.status);
-				console.log(error.response.headers);
-			} else if (error.request) {
-				console.log(error.request);
-			} else {
-				console.log('Error', error.message);
-			}
-			console.log(error.config);
-		})
-		.finally(() => {
-            setLoading(false); // Reset loading state
-        });
+			.then(response => {
+				utils.log('Sign Up:', response.data)
+
+				const credentials = {
+					username: username,
+					password: password1
+				}
+				login(
+					credentials,
+					response.data.user,
+					response.data.tokens
+				)
+			})
+			.catch(error => {
+				if (error.response) {
+					console.log(error.response.data);
+					console.log(error.response.status);
+					console.log(error.response.headers);
+				} else if (error.request) {
+					console.log(error.request);
+				} else {
+					console.log('Error', error.message);
+				}
+				console.log(error.config);
+			})
+			.finally(() => {
+				setLoading(false); // Reset loading state
+			});
 	}
 
 	return (
 		<SafeAreaView style={{ flex: 1 }}>
-			<KeyboardAvoidingView behavior="height" style={{ flex: 1 }}>
-				<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-					<View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 16 }}>
+			<LinearGradient
+				colors={[theme.colors.background, theme.colors.background]}
+				style={{
+					flex: 1,
 
-						<Text 
-							style={{ 
-								textAlign: 'center', 
-								marginBottom: 24, 
-								fontSize: 36, 
-								fontWeight: 'bold' 
-							}}
-						>
-							Sign Up
-						</Text>
+				}}
+			>
+				<KeyboardAvoidingView behavior="height" style={{ flex: 1 }}>
+					<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+						<View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 16 }}>
 
-						{loading && <CustomLoader message="Signing in, please wait..." />}
-
-						<Input 
-							title='Username' 
-							value={username}
-							error={usernameError}
-							setValue={setUsername}
-							setError={setUsernameError}
-						/>
-
-						<Input 
-							title='First Name'
-							value={firstName}
-							error={firstNameError}
-							setValue={setFirstName}
-							setError={setFirstNameError}
-						/>
-
-						<Input 
-							title='Last Name'
-							value={lastName}
-							error={lastNameError}
-							setValue={setLastName}
-							setError={setLastNameError}
-						/>
-						
-						<Input 
-							title='Password'
-							value={password1}
-							error={password1Error}
-							setValue={setPassword1}
-							setError={setPassword1Error}
-							secureTextEntry={true}
-						/>
-
-						<Input 
-							title='Retype Password'
-							value={password2}
-							error={password2Error}
-							setValue={setPassword2}
-							setError={setPassword2Error}
-							secureTextEntry={true}
-						/>
-
-						<Button title='Sign Up' onPress={onSignUp} />
-
-						<Text style={{ textAlign: 'center', marginTop: 40 }}>
-							Already have an account? <Text 
-								style={{ color: 'blue' }}
-								onPress={() => navigation.goBack()}
+							<Text
+								style={{
+									textAlign: 'center',
+									marginBottom: 24,
+									fontSize: 36,
+									fontWeight: 'bold',
+									color: theme.colors.text,
+								}}
 							>
-								Sign In
+								Sign Up
 							</Text>
-						</Text>
+
+							{loading && <CustomLoader message="Signing in, please wait..." />}
+
+							<Input
+								title='Username'
+								value={username}
+								error={usernameError}
+								setValue={setUsername}
+								setError={setUsernameError}
+							/>
+
+							<Input
+								title='First Name'
+								value={firstName}
+								error={firstNameError}
+								setValue={setFirstName}
+								setError={setFirstNameError}
+							/>
+
+							<Input
+								title='Last Name'
+								value={lastName}
+								error={lastNameError}
+								setValue={setLastName}
+								setError={setLastNameError}
+							/>
+
+							<Input
+								title='Password'
+								value={password1}
+								error={password1Error}
+								setValue={setPassword1}
+								setError={setPassword1Error}
+								secureTextEntry={true}
+							/>
+
+							<Input
+								title='Retype Password'
+								value={password2}
+								error={password2Error}
+								setValue={setPassword2}
+								setError={setPassword2Error}
+								secureTextEntry={true}
+							/>
+
+							<Button title='Sign Up' onPress={onSignUp} />
+
+							<Text style={{ textAlign: 'center', marginTop: 40,  color: theme.colors.text, }}>
+								Already have an account? <Text
+									style={{ color: 'blue' }}
+									onPress={() => navigation.goBack()}
+								>
+									Sign In
+								</Text>
+							</Text>
 
 
-					</View>
-				</TouchableWithoutFeedback>
-			</KeyboardAvoidingView>
+						</View>
+					</TouchableWithoutFeedback>
+				</KeyboardAvoidingView>
+			</LinearGradient>
 		</SafeAreaView>
 	)
 }

@@ -7,7 +7,7 @@ from django.core.files.base import  ContentFile
 from django.db.models import Q, Exists, OuterRef
 from django.db.models.functions import Coalesce
 
-from .models import User, Connection, Message
+from .models import User, Connection, Message, AiMessage
 
 from .serializers import (
 	UserSerializer, 
@@ -140,6 +140,14 @@ class ChatConsumer(WebsocketConsumer):
             # Generate a response
 			response = chain.invoke({"question": question})
 			print("Response", response)
+			user = self.scope["user"]
+			AiMessage.objects.create(
+				
+				user=user,  # Assign the user who triggered the query
+				ai_res=response,  # Save the AI-generated text
+				user_query=question,  # Mark the message as AI-generated
+				
+        )
 			return response
 		except Exception as e:
 			print(f"Error processing AI query: {e}")

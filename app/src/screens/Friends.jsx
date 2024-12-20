@@ -8,6 +8,7 @@ import {
 	TextInput,
 	TouchableOpacity,
 	View,
+	Image
 } from "react-native";
 import { useTheme } from "react-native-paper";
 import Cell from "../common/Cell";
@@ -16,38 +17,49 @@ import Thumbnail from "../common/Thumbnail";
 import utils from "../core/utils";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faSearch, faRobot, faArrowRight } from "@fortawesome/free-solid-svg-icons";
-
+import LinearGradient from "react-native-linear-gradient";
+import LottieView from 'lottie-react-native';
 import useGlobal from "../core/global";
 
 function FriendRow({ navigation, item }) {
 	const theme = useTheme();
 	return (
-		<TouchableOpacity
-			onPress={() => {
-				navigation.navigate("Messages", item);
+
+		<LinearGradient
+			colors={[theme.colors.primary, theme.colors.primary]}
+			style={{
+				flex: 1,
+
 			}}
 		>
-			<Cell>
-				<Thumbnail url={item.friend.thumbnail} size={76} />
-				<View style={{ flex: 1, paddingHorizontal: 16 }}>
-					<Text
-						style={{
-							fontWeight: "bold",
-							color: theme.colors.text,
-							marginBottom: 4,
-						}}
-					>
-						{item.friend.name}
-					</Text>
-					<Text style={{ color: theme.colors.text }}>
-						{item.preview}{" "}
-						<Text style={{ color: theme.colors.text, fontSize: 13 }}>
-							{utils.formatTime(item.updated)}
+
+			<TouchableOpacity
+				onPress={() => {
+					navigation.navigate("Messages", item);
+				}}
+			>
+				<Cell>
+					<Thumbnail url={item.friend.thumbnail} size={76} />
+					<View style={{ flex: 1, paddingHorizontal: 16 }}>
+						<Text
+							style={{
+								fontWeight: "bold",
+								color: theme.colors.text,
+								marginBottom: 4,
+							}}
+						>
+							{item.friend.name}
 						</Text>
-					</Text>
-				</View>
-			</Cell>
-		</TouchableOpacity>
+						<Text style={{ color: theme.colors.text }}>
+							{item.preview}{" "}
+							<Text style={{ color: theme.colors.text, fontSize: 13 }}>
+								{utils.formatTime(item.updated)}
+							</Text>
+						</Text>
+					</View>
+				</Cell>
+			</TouchableOpacity>
+		</LinearGradient>
 	);
 }
 
@@ -71,66 +83,99 @@ function FriendsScreen({ navigation, item }) {
 
 		return (
 			<SafeAreaView style={{ flex: 1 }}>
-				<View style={styles.searchContainer}>
-					<TextInput
-						style={styles.searchInput}
-						placeholder="Search your friend..."
-						value={searchQuery}
-						onChangeText={setSearchQuery}
-					/>
-					{/* <TouchableOpacity
+				<LinearGradient
+					colors={["#1A434E", "#1A434E"]}
+					style={{
+						flex: 1,
+
+					}}
+				>
+					<View style={styles.searchContainer}>
+						<TextInput
+							style={styles.searchInput}
+							placeholder="Search your friend..."
+							value={searchQuery}
+							placeholderTextColor={theme.colors.placeholder}
+							onChangeText={setSearchQuery}
+						/>
+						{/* <TouchableOpacity
 						style={styles.searchButton}
 						onPress={() => {}}
 					>
 						<FontAwesomeIcon icon={faArrowRight} size={24} color="#fff" />
 					</TouchableOpacity> */}
-				</View>
-				<Empty icon="search" message="No messages found" />
+					</View>
+					<Empty icon="search" message="No messages found" />
+				</LinearGradient>
 			</SafeAreaView>
 		);
 	}
 
 	return (
 		<SafeAreaView style={{ flex: 1 }}>
-			{/* Search Bar */}
-			<View style={styles.searchContainer}>
-				<TextInput
-					style={styles.searchInput}
-					placeholder="Search your friend..."
-					value={searchQuery}
-					onChangeText={setSearchQuery}
-				/>
-				{/* <TouchableOpacity
+			<LinearGradient
+				colors={[theme.colors.background, theme.colors.background]}
+				style={{
+					flex: 1,
+				}}
+			>
+				<View style={styles.searchContainer}>
+					<TextInput
+						style={styles.searchInput}
+						placeholder="Search your friend..."
+						placeholderTextColor={theme.colors.placeholder}
+						value={searchQuery}
+						onChangeText={setSearchQuery}
+					/>
+					{/* <TouchableOpacity
 					style={styles.searchButton}
 					onPress={() => {}}
 				>
 					<FontAwesomeIcon icon={faArrowRight} size={24} color="#fff" />
 				</TouchableOpacity> */}
-			</View>
+				</View>
 
-			{/* List of Friends */}
-			<FlatList
-				data={filteredFriends}
-				renderItem={({ item }) => (
-					<FriendRow navigation={navigation} item={item} />
-				)}
-				keyExtractor={(item) => item.id}
-				ListEmptyComponent={<Empty icon="inbox" message="No friends to display" />}
-			/>
+				{/* List of Friends */}
+				<FlatList
+					data={filteredFriends}
+					renderItem={({ item }) => (
+						<FriendRow navigation={navigation} item={item} />
+					)}
+					keyExtractor={(item) => item.id}
+					ListEmptyComponent={<Empty icon="inbox" message="No friends to display" />}
+				/>
 
-			{/* Floating Buttons */}
-			<View style={styles.floatingButtonContainer}>
-				<TouchableOpacity
-					style={styles.smallButton}
-					onPress={() => {
-						navigation.navigate("AiChat", {
-							item: filteredFriends.length > 0 ? filteredFriends[0] : null, // or pass a specific friend if desired
-						});
-					}}
-				>
-					<FontAwesomeIcon icon={faRobot} size={50} color="#00008B" />
-				</TouchableOpacity>
-			</View>
+				{/* Floating Buttons */}
+				<View style={styles.floatingButtonContainer}>
+					<TouchableOpacity
+						style={styles.smallButton}
+						onPress={() => {
+							navigation.navigate("AiChat", {
+								item: filteredFriends.length > 0 ? filteredFriends[0] : null, // or pass a specific friend if desired
+							});
+						}}
+					>
+						{/* <FontAwesomeIcon icon={faRobot} size={50} color="#00008B" /> */}
+						{/* <Image
+							source={require('../assets/icon.png')}
+							style={{
+								width: 100,
+								height: 80,
+
+							}}
+
+						/> */}
+
+						<LottieView
+							source={require('../assets/iconn.json')} // Update to your Lottie JSON path
+							autoPlay
+							loop
+							style={styles.lottie}
+						/>
+					</TouchableOpacity>
+				</View>
+
+			</LinearGradient>
 		</SafeAreaView>
 	);
 }
@@ -146,17 +191,16 @@ const styles = StyleSheet.create({
 		width: 70,
 		height: 70,
 		borderRadius: 25,
-		backgroundColor: "#C0C0C0",
 		alignItems: "center",
 		justifyContent: "center",
-		elevation: 5,
 	},
 	searchContainer: {
 		flexDirection: "row",
 		alignItems: "center",
 		padding: 10,
 		borderBottomWidth: 1,
-		borderBottomColor: "#ccc",
+		borderBottomColor: "grey",
+		// opacity:0.2,
 	},
 	searchInput: {
 		flex: 1,
@@ -171,6 +215,10 @@ const styles = StyleSheet.create({
 		backgroundColor: "#6200ee",
 		borderRadius: 5,
 		marginLeft: 10,
+	},
+	lottie: {
+		width: 250, // Adjust to match your design
+		height: 150,
 	},
 });
 

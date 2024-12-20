@@ -104,7 +104,7 @@ function MessageTypingAnimation({ offset }) {
                 height: 8,
                 marginHorizontal: 1.5,
                 borderRadius: 4,
-                backgroundColor: '#606060',
+                backgroundColor: '#d0d2db',
                 transform: [{ translateY }]
             }}
         />
@@ -171,22 +171,26 @@ function AIChatInput({ onSend }) {
                 paddingHorizontal: 16,
                 paddingVertical: 10,
                 backgroundColor: theme.colors.text,
+                backgroundColor: theme.colors.background,
+
             }}
         >
             <TextInput
                 style={{
                     flex: 1,
                     paddingHorizontal: 16,
+                    
                     height: 50,
                     borderWidth: 1,
                     borderRadius: 25,
                     borderColor: "#d0d0d0",
-                    backgroundColor: "black",
+                   backgroundColor: theme.colors.background,
                     color: "white",
                     fontSize: 16,
                 }}
                 placeholder="Type a message..."
                 placeholderTextColor="#909090"
+                color={theme.colors.text}
                 value={message}
                 onChangeText={setMessage}
             />
@@ -194,12 +198,12 @@ function AIChatInput({ onSend }) {
                 onPress={handleSend}
                 style={{
                     marginLeft: 12,
-                    backgroundColor: theme.colors.primary,
+                    backgroundColor: theme.colors.background,
                     borderRadius: 25,
                     padding: 12,
                 }}
             >
-                <FontAwesomeIcon icon={faPaperPlane} size={22} color="white" />
+                <FontAwesomeIcon icon={faPaperPlane} size={22} color={theme.colors.text} />
             </TouchableOpacity>
         </View>
     );
@@ -207,6 +211,7 @@ function AIChatInput({ onSend }) {
 
 // Main chat screen component
 function AIChatScreen({ navigation }) {
+    const theme = useTheme();
     const [messages, setMessages] = useState([]); // { isUser: boolean, text: string }
     const ollamaTyping = useGlobal((state) => state.ollamaTyping);
     const sendToOllama = useGlobal((state) => state.sendToOllama);
@@ -262,7 +267,7 @@ function AIChatScreen({ navigation }) {
     }, [messages]);
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, }}>
             <FlatList
                 ref={flatListRef}
                 contentContainerStyle={{ paddingVertical: 10 }}

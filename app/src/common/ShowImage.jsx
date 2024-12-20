@@ -9,7 +9,8 @@ function ShowImage({ url, size }) {
 				width: size, 
 				height: size*1.5, 
 				borderRadius: 20,
-				backgroundColor: '#e0e0e0' 
+				backgroundColor: '#e0e0e0', 
+				
 			}}
 		/>
 	)

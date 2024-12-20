@@ -4,6 +4,7 @@ import Empty from "../common/Empty"
 import Cell from "../common/Cell"
 import Thumbnail from "../common/Thumbnail"
 import utils from "../core/utils"
+import LinearGradient from "react-native-linear-gradient";
 
 
 
@@ -12,19 +13,27 @@ function RequestAccept({ item }) {
 	const requestAccept = useGlobal(state => state.requestAccept)
 
 	return (
-		<TouchableOpacity
+		<LinearGradient
+			colors={["#09203F", "#537895"]}
 			style={{
-				backgroundColor: '#202020',
-				paddingHorizontal: 14,
-				height: 36,
-				borderRadius: 18,
-				alignItems: 'center',
-				justifyContent: 'center'
+				flex: 1,
+
 			}}
-			onPress={() => requestAccept(item.sender.username)}
 		>
-			<Text style={{ color: 'white', fontWeight: 'bold' }}>Accept</Text>
-		</TouchableOpacity>
+			<TouchableOpacity
+				style={{
+					backgroundColor: '#202020',
+					paddingHorizontal: 14,
+					height: 36,
+					borderRadius: 18,
+					alignItems: 'center',
+					justifyContent: 'center'
+				}}
+				onPress={() => requestAccept(item.sender.username)}
+			>
+				<Text style={{ color: 'white', fontWeight: 'bold' }}>Accept</Text>
+			</TouchableOpacity>
+		</LinearGradient>
 	)
 }
 
@@ -36,39 +45,51 @@ function RequestRow({ item }) {
 	//const time = '7m ago'
 
 	return (
+
 		<Cell>
-			<Thumbnail
-				url={item.sender.thumbnail}
-				size={76}
-			/>
-			<View
+			<LinearGradient
+				colors={["#09203F", "#537895"]}
 				style={{
 					flex: 1,
-					paddingHorizontal: 16
+
 				}}
 			>
-				<Text
+				<Thumbnail
+					url={item.sender.thumbnail}
+					size={76}
+				/>
+				<View
 					style={{
-						fontWeight: 'bold',
-						color: '#202020',
-						marginBottom: 4
+						flex: 1,
+						paddingHorizontal: 16
 					}}
 				>
-					{item.sender.name}
-				</Text>
-				<Text
-					style={{
-						color: '#606060',
-					}}
-				>
-					{message} <Text style={{ color: '#909090', fontSize: 13 }}>
-						{utils.formatTime(item.created)}
+					<Text
+						style={{
+							fontWeight: 'bold',
+							color: '#202020',
+							marginBottom: 4
+						}}
+					>
+						{item.sender.name}
 					</Text>
-				</Text>
-			</View>
+					<Text
+						style={{
+							color: '#606060',
+						}}
+					>
+						{message} <Text style={{ color: '#909090', fontSize: 13 }}>
+							{utils.formatTime(item.created)}
+						</Text>
+					</Text>
+				</View>
 
-			<RequestAccept item={item} />
+				<RequestAccept item={item} />
+
+			</LinearGradient>
 		</Cell>
+
+
 	)
 }
 
@@ -79,7 +100,7 @@ function RequestsScreen() {
 
 	// Show loading indicator
 	if (requestList === null) {
-		return  (
+		return (
 			<ActivityIndicator style={{ flex: 1 }} />
 		)
 	}
@@ -93,15 +114,26 @@ function RequestsScreen() {
 
 	// Show request list
 	return (
-		<View style={{ flex: 1 }}>
-			<FlatList
-				data={requestList}
-				renderItem={({ item }) => (
-					<RequestRow item={item} />
-				)}
-				keyExtractor={item => item.sender.username}
-			/>
-		</View>
+		<LinearGradient
+			colors={["#09203F", "#537895"]}
+			style={{
+				flex: 1,
+
+			}}
+		>
+			<View style={{ flex: 1 }}>
+
+				<FlatList
+					data={requestList}
+					renderItem={({ item }) => (
+						<RequestRow item={item} />
+					)}
+					keyExtractor={item => item.sender.username}
+				/>
+
+
+			</View>
+		</LinearGradient>
 	)
 }
 

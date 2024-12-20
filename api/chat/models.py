@@ -42,7 +42,8 @@ class Message(models.Model):
 	connection = models.ForeignKey(
 		Connection,
 		related_name='messages',
-		on_delete=models.CASCADE
+		on_delete=models.CASCADE,
+		
 	)
 	user = models.ForeignKey(
 		User,
@@ -54,6 +55,28 @@ class Message(models.Model):
 	file = models.FileField(upload_to='messages/files/', blank=True, null=True)
 	is_ai = models.BooleanField(default=False) 
 
+
+
 	def __str__(self):
 		return self.user.username + ': ' + self.text
+	
+
+class AiMessage(models.Model):
+	
+	user = models.ForeignKey(
+		User,
+		related_name='ai_messages',
+		on_delete=models.CASCADE
+	)
+	user_query = models.TextField()
+	ai_res = models.TextField()
+	created = models.DateTimeField(auto_now_add=True)
+	rating = models.TextField(blank=True)
+
+	
+
+	def __str__(self):
+		return self.user.username + ': ' + self.text
+
+
 

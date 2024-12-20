@@ -7,6 +7,7 @@ import utils from "../core/utils"
 import Thumbnail from "../common/Thumbnail"
 import { useTheme } from "react-native-paper";
 import CustomLoader from "../common/CustomLoader"
+import LinearGradient from "react-native-linear-gradient";
 
 
 
@@ -17,7 +18,7 @@ function ProfileImage() {
 	const user = useGlobal(state => state.user)
 
 	return (
-		<TouchableOpacity 
+		<TouchableOpacity
 			style={{ marginBottom: 20 }}
 			onPress={() => {
 				launchImageLibrary({ includeBase64: true }, (response) => {
@@ -63,6 +64,7 @@ function ProfileLogout() {
 	const logout = useGlobal(state => state.logout)
 
 	return (
+
 		<TouchableOpacity
 			onPress={logout}
 			style={{
@@ -79,18 +81,19 @@ function ProfileLogout() {
 			<FontAwesomeIcon
 				icon='right-from-bracket'
 				size={20}
-				color={theme.colors.text}
-				style={{ marginRight: 12}}
+				color= "black"
+				style={{ marginRight: 12 }}
 			/>
 			<Text
 				style={{
 					fontWeight: 'bold',
-					color: theme.colors.text
+					color: "black"
 				}}
 			>
 				Logout
 			</Text>
 		</TouchableOpacity>
+
 	)
 }
 
@@ -100,41 +103,52 @@ function ProfileScreen() {
 	const theme = useTheme();
 	const user = useGlobal(state => state.user)
 	const [loading, setLoading] = useState(false);
-	
+
 	return (
-		<View
+		<LinearGradient
+			colors={[theme.colors.background, theme.colors.background]}
 			style={{
 				flex: 1,
-				alignItems: 'center',
-				paddingTop: 100
+
 			}}
 		>
-			<ProfileImage />
-
-			<Text 
+			<View
 				style={{
-					textAlign: 'center',
-					color: theme.colors.text,
-					fontSize: 20,
-					fontWeight: 'bold',
-					marginBottom: 6
+					flex: 1,
+					alignItems: 'center',
+					paddingTop: 100
 				}}
 			>
-				{user.name}
-			</Text>
-			<Text
-				style={{
-					textAlign: 'center',
-					color: theme.colors.secondary,
-					fontSize: 14
-				}}
-			>
-				@{user.username}
-			</Text>
 
-			<ProfileLogout />
+				<ProfileImage />
 
-		</View>
+				<Text
+					style={{
+						textAlign: 'center',
+						color: theme.colors.text,
+						fontSize: 20,
+						fontWeight: 'bold',
+						marginBottom: 6
+					}}
+				>
+					{user.name}
+				</Text>
+				<Text
+					style={{
+						textAlign: 'center',
+						color: theme.colors.text,
+						fontSize: 14
+					}}
+				>
+					@{user.username}
+				</Text>
+
+				<ProfileLogout />
+
+
+
+			</View>
+		</LinearGradient>
 	)
 }
 

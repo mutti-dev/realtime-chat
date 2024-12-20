@@ -21,7 +21,10 @@ function MessageHeader({ friend }) {
 			style={{
 				flex: 1,
 				flexDirection: 'row',
-				alignItems: 'center'
+				alignItems: 'center',
+				
+			
+
 			}}
 		>
 			<Thumbnail
@@ -76,7 +79,7 @@ function MessageBubbleMe({ text, file, onFilePress, isSending }) {
 						{isSending ? (
 							<Text style={{ color: 'white', fontSize: 16 }}>Sending...</Text>
 						) : file.endsWith('.jpg') || file.endsWith('.png') ? (
-							<ShowImage url={file} size={150} />
+							<ShowImage url={file} size={200} />
 						) : (
 							<Text style={{ color: 'white', fontSize: 16 }}>Open File</Text>
 						)}
@@ -151,12 +154,10 @@ function MessageTypingAnimation({ offset }) {
 
 
 
-function MessageBubbleFriend({ text = '', friend, typing = false, file }) {
+function MessageBubbleFriend({ text = '', friend, typing = false, file, onFilePress }) {
 	const openFile = () => {
 		if (!file) return;
-		FileViewer.open(file)
-			.then(() => console.log('File opened successfully'))
-			.catch(err => console.error('Failed to open file:', err));
+		onFilePress(file);
 	};
 
 	return (
@@ -181,13 +182,13 @@ function MessageBubbleFriend({ text = '', friend, typing = false, file }) {
 						<MessageTypingAnimation offset={2} />
 					</View>
 				) : file ? (
-					<TouchableOpacity>
+					<TouchableOpacity onPress={openFile}>
 						{file.endsWith('.jpg') || file.endsWith('.png') || file.endsWith('.jpeg') ? (
 							// <Image
 							//     source={{ uri: 'http://' + ADDRESS + file }}
 							//     style={{ width: 150, height: 150, borderRadius: 10 }}
 							// />
-							<ShowImage url={file} size={150} />
+							<ShowImage url={file} size={200} />
 						) : (
 							<Text style={{ color: '#202020', fontSize: 16 }}>Open File</Text>
 						)}
@@ -223,7 +224,8 @@ const ImageVideoModal = ({ visible, mediaUrl, onClose }) => {
 				<View
 					style={{
 						backgroundColor: 'black',
-						padding: 20,
+						padding: 10,
+						
 						borderRadius: 10,
 						alignItems: 'center',
 					}}
@@ -315,7 +317,7 @@ function MessageBubble({ index, message, friend }) {
 	}, [messagesTyping]);
 
 	if (index === 0 && showTyping) {
-		return <MessageBubbleFriend friend={friend} typing={true} />;
+		return <MessageBubbleFriend friend={friend} typing={true} onFilePress={openFile}/>;
 	}
 
 	return message.is_me ? (
@@ -333,7 +335,7 @@ function MessageBubble({ index, message, friend }) {
 			/>
 		</>
 	) : (
-		<MessageBubbleFriend text={message.text} friend={friend} file={message.file} />
+		<MessageBubbleFriend text={message.text} friend={friend} file={message.file} onFilePress={openFile}/>
 	);
 }
 
@@ -372,7 +374,7 @@ function MessageInput({ message, setMessage, onSend, onFileSend }) {
 			style={{
 				paddingHorizontal: 16,
 				paddingBottom: 10,
-				backgroundColor: theme.colors.text,
+				backgroundColor: theme.colors.background,
 				flexDirection: 'row',
 				alignItems: 'center',
 				borderTopWidth: 1,
@@ -389,12 +391,12 @@ function MessageInput({ message, setMessage, onSend, onFileSend }) {
 				<FontAwesomeIcon
 					icon="file"
 					size={22}
-					color={theme.colors.primary}
+					color={theme.colors.text}
 					style={{
 						marginHorizontal: 12,
 						borderRadius: 20,
 						padding: 8,
-						backgroundColor: theme.colors.text,
+						backgroundColor: theme.colors.background,
 						elevation: 2,
 					}}
 				/>
@@ -403,8 +405,8 @@ function MessageInput({ message, setMessage, onSend, onFileSend }) {
 
 			<TextInput
 				placeholder="Type a message..."
-				placeholderTextColor="#909090"
-				color="white"
+				placeholderTextColor={theme.colors.text}
+				color={theme.colors.text}
 				value={message}
 				onChangeText={setMessage}
 				style={{
@@ -413,7 +415,7 @@ function MessageInput({ message, setMessage, onSend, onFileSend }) {
 					borderWidth: 1,
 					borderRadius: 25,
 					borderColor: '#d0d0d0',
-					backgroundColor: 'black',
+					backgroundColor: theme.colors.background,
 					height: 50,
 					fontSize: 16,
 					fontFamily: 'Roboto',
@@ -426,12 +428,12 @@ function MessageInput({ message, setMessage, onSend, onFileSend }) {
 				<FontAwesomeIcon
 					icon="paper-plane"
 					size={22}
-					color={theme.colors.primary}
+					color={theme.colors.text}
 					style={{
 						marginHorizontal: 12,
 						borderRadius: 20,
 						padding: 8,
-						backgroundColor: theme.colors.text,
+						backgroundColor: theme.colors.background,
 						elevation: 2,
 					}}
 				/>

@@ -9,8 +9,8 @@ function Cell({ children }) {
 				flexDirection: 'row',
 				alignItems: 'center',
 				borderBottomWidth: 1,
-				borderColor: '#f0f0f0',
-				height: 106
+				borderColor: 'grey',
+				height: 106,
 			}}
 		>
 			{children}
