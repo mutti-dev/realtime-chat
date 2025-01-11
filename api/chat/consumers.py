@@ -14,7 +14,8 @@ from .serializers import (
 	SearchSerializer, 
 	RequestSerializer, 
 	FriendSerializer,
-	MessageSerializer
+	MessageSerializer,
+	AiMessageSerializer
 )
 
 from langchain_openai import ChatOpenAI
@@ -122,36 +123,59 @@ class ChatConsumer(WebsocketConsumer):
 
 	def process_ai_query(self, question):
 		try:
-            # Initialize Langchain components
-			prompt = ChatPromptTemplate.from_messages(
-                [
-                    ("system", "You are a anngry assistant.Your name is Mutti. Respond to user queries."),
-                    ("user", f"Question: {question}"),
-                ]
-            )
-			llm = Ollama(model="llama3.2")
-			output_parser = StrOutputParser()
-             #Load vector store
-			 # embedding = FastEmbedEmbeddings()
-			 # vector_store = Chroma(persist_directory="./sql_chroma_db", embedding_function=embedding)
-            # Build the chain
-			chain = prompt | llm | output_parser
-            
-            # Generate a response
-			response = chain.invoke({"question": question})
-			print("Response", response)
+			# Load the persisted Chroma vector store
+			embedding = FastEmbedEmbeddings()
+			vector_store = Chroma(persist_directory="./sql_chroma_db", embedding_function=embedding)
+
+			# Create a retriever
+			retriever = vector_store.as_retriever(
+				search_type="similarity_score_threshold",
+				search_kwargs={
+					"k": 3,
+					"score_threshold": 0.5,
+				},
+			)
+
+			# Retrieve documents based on the user's query
+			retrieved_docs = retriever.get_relevant_documents(question)
+
+			# Prepare context from the retrieved documents
+			context = "\n\n".join(doc.page_content for doc in retrieved_docs)
+
+			# Define the ChatOllama model
+			model = ChatOllama(model="llama3.2")
+
+			# Define a prompt template for context-based Q&A
+			prompt = PromptTemplate.from_template(
+				"""
+				<s> [Instructions] You are a friendly assistant. Answer the question based only on the following context. 
+				If you don't know the answer, then reply, 'No context available for this question.' [/Instructions] </s> 
+				[Instructions] Question: {input} 
+				Context: {context} 
+				Answer: [/Instructions]
+				"""
+			)
+
+			# Build the chain
+			document_chain = create_stuff_documents_chain(model, prompt)
+			chain = create_retrieval_chain(retriever, document_chain)
+
+			# Generate a response
+			response = chain.invoke({"input": question, "context": context})
+
+			# Save the response to the database
 			user = self.scope["user"]
 			AiMessage.objects.create(
-				
 				user=user,  # Assign the user who triggered the query
 				ai_res=response,  # Save the AI-generated text
-				user_query=question,  # Mark the message as AI-generated
-				
-        )
+				user_query=question,  # Save the user query
+			)
 			return response
+
 		except Exception as e:
 			print(f"Error processing AI query: {e}")
 			return "I'm sorry, there was an error with the AI agent."
+
 		
 
 	def rag_chain(self):
@@ -178,7 +202,7 @@ class ChatConsumer(WebsocketConsumer):
 			search_type="similarity_score_threshold",
 			search_kwargs={
 				"k": 3,
-				"score_threshold": 0.5,
+				"score_threshold": 0.1,
 			},
 		)
 
@@ -220,20 +244,29 @@ class ChatConsumer(WebsocketConsumer):
 	def receive_ai_query(self, data):
 		user = self.scope['user']
 		question = data.get('message')
-		
+
 		if not question:
-			print("Error: No question provided for AI agent here.")
+			print("Error: No question provided for AI agent.")
 			return
 
-        # Process the AI response
+		# Process the AI response
 		ai_response = self.process_ai_query(question)
 
-        # Broadcast AI response back to the group
+		# Fetch previous AI messages for the user (limit the results or paginate if needed)
+		ai_messages = AiMessage.objects.filter(user=user).order_by('-created')
+		print("AI messages previously", ai_messages)
+
+		# Serialize the AI messages (make sure to use a serializer for AiMessage)
+		serialized_ai_messages = AiMessageSerializer(ai_messages, many=True)
+
+		# Send back the AI response and previous AI messages to the frontend
 		response_data = {
-            "username": "AI Agent",  # Static AI agent identity
-            "message": ai_response,
-        }
+			"username": "AI Agent",  # Static AI agent identity
+			"message": ai_response,  # New AI response
+			"previous_messages": serialized_ai_messages.data,  # Include previous AI messages
+		}
 		self.send_group(user.username, "ai.response", response_data)
+
 
 
 

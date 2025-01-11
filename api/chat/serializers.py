@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User, Connection, Message
+from .models import AiMessage
 
 
 
@@ -145,3 +146,10 @@ class MessageSerializer(serializers.ModelSerializer):
 
 	def get_is_me(self, obj):
 		return self.context['user'] == obj.user
+	
+
+
+class AiMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AiMessage
+        fields = ['user_query', 'ai_res', 'created']

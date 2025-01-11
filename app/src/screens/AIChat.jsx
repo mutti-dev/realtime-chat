@@ -42,19 +42,21 @@ function MessageHeader() {
                 style={{
                     width: 30,
                     height: 30,
-                    borderRadius: 15, // Half the width/height for a circular image
-                    backgroundColor: "#e0e0e0",
+                    borderRadius: 15,
+                    borderColor: theme.colors.secondary,
+                    // backgroundColor: theme.colors.secondary,
+                    
                 }}
             />
             <Text
                 style={{
                     color: theme.colors.text,
-                    marginLeft: 10,
-                    fontSize: 18,
-                    fontWeight: "bold",
+					marginLeft: 10,
+					fontSize: 20,
+					fontWeight: 'bold'
                 }}
             >
-                AI
+                Mutti GPT
             </Text>
         </View>
     );
@@ -215,34 +217,33 @@ function AIChatScreen({ navigation }) {
     const [messages, setMessages] = useState([]); // { isUser: boolean, text: string }
     const ollamaTyping = useGlobal((state) => state.ollamaTyping);
     const sendToOllama = useGlobal((state) => state.sendToOllama);
-    const { ollamaResponse } = useGlobal(state => ({
+    const { ollamaResponse, messagesList } = useGlobal((state) => ({
         ollamaResponse: state.ollamaResponse,
+        messagesList: state.messagesList, // assuming messagesList stores the previous messages
     }));
-
-
-    // Update the header 
-    useLayoutEffect(() => {
-        navigation.setOptions({
-            headerTitle: () => (
-                <MessageHeader />
-            )
-        })
-    }, [])
 
     const flatListRef = useRef();
 
-    const handleSend = (text) => {
-        setMessages((prev) => [{ isUser: true, text }, ...prev]);
-        sendToOllama(text);
-    };
+    // Fetch previous messages when the screen loads
+    // useEffect(() => {
+    //     const connectionId = 'your_connection_id'; // Replace with actual connection ID
+    //     useGlobal.getState().messageList(connectionId, 0); // Fetch the first batch of messages
+    // }, []);
 
-    // Handle Ollama response
+    // Update the messages when new messages come in
+    useEffect(() => {
+        if (messagesList) {
+            // Prepend the previous messages to the state
+            setMessages((prevMessages) => [...messagesList, ...prevMessages]);
+        }
+    }, [messagesList]);
+
+    // Handle Ollama response and add it to the message list
     useEffect(() => {
         if (ollamaResponse) {
-            // Remove typing message if it's there and add the response
-            setMessages((prev) => [
+            setMessages((prevMessages) => [
                 { isUser: false, text: ollamaResponse },
-                ...prev.filter((msg) => msg.text !== "AI Mutti is typing..."),
+                ...prevMessages.filter((msg) => msg.text !== "AI Mutti is typing..."),
             ]);
         }
     }, [ollamaResponse]);
@@ -250,35 +251,40 @@ function AIChatScreen({ navigation }) {
     // Handle typing indicator
     useEffect(() => {
         if (ollamaTyping) {
-            // Only add the typing message if it isn't already there
-            setMessages((prev) => {
-                if (!prev.some(msg => msg.text === "AI Mutti is typing...")) {
-                    return [{ isUser: false, text: "AI Mutti is typing..." }, ...prev];
+            setMessages((prevMessages) => {
+                if (!prevMessages.some((msg) => msg.text === "AI Mutti is typing...")) {
+                    return [{ isUser: false, text: "AI Mutti is typing..." }, ...prevMessages];
                 }
-                return prev;
+                return prevMessages;
             });
         }
     }, [ollamaTyping]);
 
+    // Scroll to the bottom of the list when messages change
     useEffect(() => {
         if (flatListRef.current) {
             flatListRef.current.scrollToOffset({ offset: 0 });
         }
     }, [messages]);
 
+    // Handle sending new messages
+    const handleSend = (text) => {
+        setMessages((prev) => [{ isUser: true, text }, ...prev]);
+        sendToOllama(text);
+    };
+
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
             <FlatList
                 ref={flatListRef}
                 contentContainerStyle={{ paddingVertical: 10 }}
                 data={messages}
-                inverted={true}
+                inverted={true} // This makes the most recent message appear at the bottom
                 keyExtractor={(_, index) => index.toString()}
                 renderItem={({ item, index }) => {
                     if (item.text === "AI Mutti is typing...") {
                         return (
-                            <View style={{ flexDirection: 'row', margin:10 }}>
-
+                            <View style={{ flexDirection: "row", margin: 10 }}>
                                 <MessageTypingAnimation offset={0} />
                                 <MessageTypingAnimation offset={1} />
                                 <MessageTypingAnimation offset={2} />

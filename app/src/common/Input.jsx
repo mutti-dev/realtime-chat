@@ -7,12 +7,11 @@ function Input({ title, value, error, setValue, setError, secureTextEntry = fals
 		<View style={{ marginBottom: 16 }}>
 			<Text
 				style={{
-					color: error ? '#ff5555' : theme.colors.text,
+					color: error ? theme.colors.error : theme.colors.text,
 					marginBottom: 4,
 					fontSize: 14,
 					fontWeight: '600',
 					paddingLeft: 8,
-
 				}}
 			>
 				{error ? error : title}
@@ -31,19 +30,19 @@ function Input({ title, value, error, setValue, setError, secureTextEntry = fals
 				}}
 				secureTextEntry={secureTextEntry}
 				style={{
-					backgroundColor: theme.colors.primary,
+					backgroundColor: theme.colors.background, // Set background color to light color in the scheme
 					borderWidth: 1,
-					borderColor: error ? '#ff5555' : theme.colors.secondary,
+					borderColor: error ? theme.colors.error : theme.colors.secondary,
 					borderRadius: 12,
 					height: 48,
 					paddingHorizontal: 16,
 					fontSize: 16,
-					shadowColor: error ? '#ff5555' : '#000',
+					shadowColor: error ? theme.colors.error : theme.colors.shadowColor, // Adjust shadow color to highlight errors
 					shadowOffset: { width: 0, height: 2 },
 					shadowOpacity: 0.1,
 					shadowRadius: 4,
 					elevation: 2,
-					color: "black"
+					color: theme.colors.text, // Use the text color from the theme
 				}}
 				value={value}
 			/>

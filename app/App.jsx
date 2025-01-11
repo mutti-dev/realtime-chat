@@ -17,6 +17,7 @@ import MessagesScreen from './src/screens/Message'
 import LinearGradient from "react-native-linear-gradient";
 
 
+
 import useGlobal from './src/core/global'
 
 import { MD3LightTheme, MD3DarkTheme } from "react-native-paper";
@@ -25,6 +26,9 @@ import { LightScheme } from "./src/theme/LightScheme";
 import { DarkScheme } from "./src/theme/DarkScheme";
 import { PaperProvider } from "react-native-paper";
 import AIChatScreen from './src/screens/AIChat';
+import RequestsScreen from './src/screens/Requests'
+import ProfileScreen from './src/screens/Profile'
+
 
 
 const LightTheme = {
@@ -78,6 +82,8 @@ function App() {
 							<Stack.Screen name="Search" component={SearchScreen} />
 							<Stack.Screen name="Messages" component={MessagesScreen} />
 							<Stack.Screen name="AiChat" component={AIChatScreen} />
+							<Stack.Screen name="Requests" component={RequestsScreen} />
+							<Stack.Screen name="Profile" component={ProfileScreen} />
 						</>
 					)}
 				</Stack.Navigator>

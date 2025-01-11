@@ -13,18 +13,20 @@ import Empty from "../common/Empty"
 import Thumbnail from "../common/Thumbnail"
 import useGlobal from "../core/global"
 import Cell from "../common/Cell"
+import { useTheme } from "react-native-paper";
 
 
 
 
 function SearchButton({ user }) {
+	const theme = useTheme();
 	// Add tick if user is already  connected
 	if (user.status === 'connected') {
 		return  (
 			<FontAwesomeIcon
 				icon='circle-check'
 				size={30}
-				color='#20d080'
+				color={theme.colors.text}
 				style={{
 					marginRight: 10
 				}}
@@ -84,6 +86,7 @@ function SearchButton({ user }) {
 
 
 function SearchRow({ user }) {
+	const theme = useTheme();
 
 	return (
 		<Cell>
@@ -100,7 +103,7 @@ function SearchRow({ user }) {
 				<Text
 					style={{
 						fontWeight: 'bold',
-						color: '#202020',
+						color: theme.colors.text,
 						marginBottom: 4
 					}}
 				>

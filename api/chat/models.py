@@ -76,7 +76,7 @@ class AiMessage(models.Model):
 	
 
 	def __str__(self):
-		return self.user.username + ': ' + self.text
+		return self.ai_res
 
 
 

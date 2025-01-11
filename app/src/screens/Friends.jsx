@@ -26,7 +26,7 @@ function FriendRow({ navigation, item }) {
 	return (
 
 		<LinearGradient
-			colors={[theme.colors.primary, theme.colors.primary]}
+			colors={[theme.colors.background, theme.colors.background]}
 			style={{
 				flex: 1,
 
@@ -44,8 +44,9 @@ function FriendRow({ navigation, item }) {
 						<Text
 							style={{
 								fontWeight: "bold",
-								color: theme.colors.text,
+								color: theme.colors.title,
 								marginBottom: 4,
+						
 							}}
 						>
 							{item.friend.name}

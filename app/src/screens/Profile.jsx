@@ -1,14 +1,48 @@
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome"
 import { useLayoutEffect, useState } from "react"
-import { View, Text, Image, TouchableOpacity } from "react-native"
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native"
 import { launchImageLibrary } from 'react-native-image-picker'
 import useGlobal from "../core/global"
 import utils from "../core/utils"
 import Thumbnail from "../common/Thumbnail"
-import { useTheme } from "react-native-paper";
+import { useTheme, Switch } from "react-native-paper";
 import CustomLoader from "../common/CustomLoader"
 import LinearGradient from "react-native-linear-gradient";
 
+
+
+
+
+export const ToggleButton = ({ value, onValueChange, label = "Theme" }) => {
+	const { colors } = useTheme();
+
+	return (
+		<View style={{
+			backgroundColor: colors.background,
+			flexDirection: 'row',
+			alignItems: 'center',
+			justifyContent: 'space-between',
+			paddingVertical: 10,
+			paddingHorizontal: 15,
+			borderRadius: 8,
+			elevation: 2,
+			margin: 10,
+		}}>
+			<Text style={{
+				color: colors.text,
+				fontSize: 18,
+				fontWeight: '600',
+			}}>
+				{label}
+			</Text>
+			<Switch
+				value={value}
+				onValueChange={onValueChange}
+				color={colors.primary} // Primary color of your theme
+			/>
+		</View>
+	);
+};
 
 
 
@@ -74,14 +108,14 @@ function ProfileLogout() {
 				alignItems: 'center',
 				justifyContent: 'center',
 				paddingHorizontal: 26,
-				backgroundColor: theme.colors.primary,
+				backgroundColor: theme.colors.button,
 				marginTop: 40
 			}}
 		>
 			<FontAwesomeIcon
 				icon='right-from-bracket'
 				size={20}
-				color= "black"
+				color="black"
 				style={{ marginRight: 12 }}
 			/>
 			<Text
@@ -100,9 +134,14 @@ function ProfileLogout() {
 
 
 function ProfileScreen() {
-	const theme = useTheme();
-	const user = useGlobal(state => state.user)
+	
 	const [loading, setLoading] = useState(false);
+	const [isDarkTheme, setIsDarkTheme] = useState(false);
+	const theme = useTheme();
+	const user = useGlobal(state => state.user);
+	const themePreference = useGlobal(state => state.theme); // Get the current theme
+	const setTheme = useGlobal(state => state.setTheme); // Function to update the theme globally
+
 
 	return (
 		<LinearGradient
@@ -112,6 +151,12 @@ function ProfileScreen() {
 
 			}}
 		>
+
+			<ToggleButton
+				value={themePreference === "dark"}
+				onValueChange={(isLight) => setTheme(isLight ? "light" : "dark")}
+				label="Dark Mode"
+			/>
 			<View
 				style={{
 					flex: 1,

@@ -166,9 +166,8 @@ function responseFile(set, get, data) {
   }));
 }
 
-
 function responseOllama(set, get, data) {
-  console.log("Ollama data", data);  
+  console.log('Ollama data', data);
   set(state => ({
     ollamaResponse: data,
     ollamaTyping: false,
@@ -191,6 +190,10 @@ const useGlobal = create((set, get) => ({
 
   init: async () => {
     const credentials = await secure.get('credentials');
+    const savedTheme = await secure.get('theme'); // Retrieve saved theme preference
+    set(state => ({
+      theme: savedTheme || 'light', // Default to light theme if not saved
+    }));
     if (credentials) {
       try {
         const response = await api({
@@ -248,27 +251,25 @@ const useGlobal = create((set, get) => ({
     }));
   },
 
-
- //---------------------
+  //---------------------
   //     Ollama
   //---------------------
   ollamaResponse: null,
   ollamaTyping: false,
 
   // Send a message to Ollama
-  sendToOllama: (message) => {
+  sendToOllama: message => {
     const socket = get().socket;
     socket.send(
       JSON.stringify({
         source: 'ai.query',
         message: message,
-      })
+      }),
     );
     set(state => ({
       ollamaTyping: true,
     }));
   },
-
 
   //---------------------
   //     Websocket
@@ -295,7 +296,6 @@ const useGlobal = create((set, get) => ({
           source: 'friend.list',
         }),
       );
-      
     };
     socket.onmessage = event => {
       // Convert data to javascript object
@@ -318,7 +318,6 @@ const useGlobal = create((set, get) => ({
         search: responseSearch,
         thumbnail: responseThumbnail,
         file: responseFile,
-        
       };
       const resp = responses[parsed.source];
       if (!resp) {
@@ -486,6 +485,9 @@ const useGlobal = create((set, get) => ({
       }),
     );
   },
+
+  theme: 'dark',
+  setTheme: theme => set({theme}), 
 }));
 
 export default useGlobal;

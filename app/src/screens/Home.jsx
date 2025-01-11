@@ -19,9 +19,9 @@ function CustomTabBar({ state, descriptors, navigation }) {
     const theme = useTheme();
 
     return (
-        <View >
+        <View>
             <LinearGradient
-                colors={[theme.colors.primary, theme.colors.primary]}
+                colors={[theme.colors.background, theme.colors.card]} // Gradient using background and card colors
                 style={styles.tabBarContainer}
             >
                 <View style={styles.tabBar}>
@@ -57,7 +57,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
                                 <FontAwesomeIcon
                                     icon={icon}
                                     size={isFocused ? 30 : 24}
-                                    color={isFocused ? "black": '#2E5077'}
+                                    color={isFocused ? theme.colors.primary : theme.colors.text} // Updated color
                                     style={isFocused ? styles.focusedIcon : styles.defaultIcon}
                                 />
                             </TouchableOpacity>
@@ -92,33 +92,51 @@ function HomeScreen({ navigation }) {
         navigation.navigate('Search');
     }
 
+    function onRequests() {
+        navigation.navigate('Requests'); // Navigates to RequestsScreen
+    }
+
+    function onProfile() {
+        navigation.navigate('Profile'); // Navigates to ProfileScreen
+    }
+
     return (
         <Tab.Navigator
             tabBar={props => <CustomTabBar {...props} />}
             screenOptions={({ route }) => ({
                 headerLeft: () => (
                     <View style={{ marginLeft: 16 }}>
-                        <Thumbnail
-                            url={user.thumbnail}
-                            size={28}
-                        />
+                        <TouchableOpacity onPress={onProfile}>
+                            <Thumbnail
+                                url={user.thumbnail}
+                                size={36}
+                            />
+                        </TouchableOpacity>
                     </View>
                 ),
                 headerRight: () => (
-                    <TouchableOpacity onPress={onSearch}>
-                        <FontAwesomeIcon
-                            style={{ marginRight: 16 }}
-                            icon='magnifying-glass'
-                            size={22}
-                            color={theme.colors.primary}
-                        />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
+                        <TouchableOpacity onPress={onRequests}>
+                            <FontAwesomeIcon
+                                style={{ marginRight: 16 }}
+                                icon='bell' // Notification bell icon
+                                size={26}
+                                color={theme.colors.primary} // Updated color
+                            />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={onSearch}>
+                            <FontAwesomeIcon
+                                icon='magnifying-glass'
+                                size={26}
+                                color={theme.colors.primary} // Updated color
+                            />
+                        </TouchableOpacity>
+                    </View>
                 ),
                 tabBarStyle: { display: 'none' },
             })}
         >
             <Tab.Screen name="Friends" component={FriendsScreen} />
-            <Tab.Screen name="Requests" component={RequestsScreen} />
             <Tab.Screen name="Profile" component={ProfileScreen} />
         </Tab.Navigator>
     );
@@ -131,7 +149,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: 70,
-        borderTopLeftRadius: 40, // Radius for the top-left corner
+        borderTopLeftRadius: 40,
         borderTopRightRadius: 40,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 7 },
@@ -155,7 +173,7 @@ const styles = StyleSheet.create({
         transform: [{ scale: 1.1 }],
     },
     focusedIcon: {
-        shadowColor: '#F29F58',
+        shadowColor: '#FFA726', // Highlighted icon shadow color (button color)
         shadowOffset: { width: 0, height: 5 },
         shadowOpacity: 0.3,
         shadowRadius: 5,

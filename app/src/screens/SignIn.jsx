@@ -15,13 +15,10 @@ import Title from "../common/Title"
 import Input from "../common/Input"
 import Button from "../common/Button"
 import api from "../core/api"
-import utils from "../core/utils"
 import useGlobal from "../core/global"
 import { useTheme } from "react-native-paper"
 import CustomLoader from "../common/CustomLoader"
 import LinearGradient from "react-native-linear-gradient";
-
-
 
 function SignInScreen({ navigation }) {
 	const [loading, setLoading] = useState(false);
@@ -39,7 +36,6 @@ function SignInScreen({ navigation }) {
 			headerShown: false
 		})
 	}, [])
-
 
 	const translateY = new Animated.Value(0);
 	const rotate = new Animated.Value(0);
@@ -150,13 +146,11 @@ function SignInScreen({ navigation }) {
 	}
 
 	return (
-
 		<SafeAreaView style={{ flex: 1 }}>
 			<LinearGradient
-				colors={[theme.colors.background, theme.colors.background]}
+				colors={[theme.colors.background, theme.colors.card]} // Gradient background for light theme
 				style={{
 					flex: 1,
-
 				}}
 			>
 				<KeyboardAvoidingView behavior="height" style={{ flex: 1 }}>
@@ -168,17 +162,8 @@ function SignInScreen({ navigation }) {
 								paddingHorizontal: 20
 							}}
 						>
-							{/* <Image
-								source={require("../assets/icon2.png")}
-								style={{
-									width: 100,
-									height: 100,
-									borderRadius: 40,
-									left:90,
-									right:10,
-								}}
-							/> */}
 							<Title text='Sign In' color={theme.colors.text} />
+
 							{loading && <CustomLoader message="Signing in, please wait..." />}
 
 							<Input
@@ -201,12 +186,13 @@ function SignInScreen({ navigation }) {
 							<Button
 								title='Sign In'
 								onPress={onSignIn}
+								style={{ backgroundColor: theme.colors.primary }} // Custom button color
 							/>
 
-							<Text style={{ textAlign: 'center', marginTop: 40, color: theme.colors.text, }}>
+							<Text style={{ textAlign: 'center', marginTop: 40, color: theme.colors.text }}>
 								Don't have an account? 
 								<Text
-									style={{ color: 'blue' }}
+									style={{ color: theme.colors.primary }} // Sign Up link color
 									onPress={() => navigation.navigate('SignUp')}
 								>
 									Sign Up
@@ -218,10 +204,7 @@ function SignInScreen({ navigation }) {
 				</KeyboardAvoidingView>
 			</LinearGradient>
 		</SafeAreaView>
-
 	)
 }
 
 export default SignInScreen
-
-// 213555
