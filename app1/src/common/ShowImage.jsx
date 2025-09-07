@@ -7,9 +7,18 @@ function ShowImage({ url, size }) {
 			source={utils.image(url)}
 			style={{ 
 				width: size, 
-				height: size*1.5, 
-				borderRadius: 20,
-				backgroundColor: '#e0e0e0', 
+				height: size*0.5, 
+				marginLeft: 100,
+				marginBottom: 50,
+				marginTop: 0,
+				// padding: 10,
+				//
+				alignContent: 'center',
+				alignItems: 'center',
+				justifyContent: 'center',
+				
+				// borderRadius: 20,
+				// backgroundColor: '#e0e0e0', 
 				
 			}}
 		/>

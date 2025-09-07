@@ -1,6 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome"
 import { useLayoutEffect, useState } from "react"
-import { View, Text, Image, TouchableOpacity } from "react-native"
+import { View, Text, Image, TouchableOpacity, ScrollView, Animated } from "react-native"
+import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker'
 import useGlobal from "../core/global"
 import utils from "../core/utils"
@@ -9,40 +10,39 @@ import { useTheme } from "react-native-paper";
 import CustomLoader from "../common/CustomLoader"
 import { LinearGradient } from 'expo-linear-gradient';
 
-
-
-
 function ProfileImage() {
 	const theme = useTheme();
 	const uploadThumbnail = useGlobal(state => state.uploadThumbnail)
 	const user = useGlobal(state => state.user)
 
 	return (
-
-
 		<TouchableOpacity
-			style={{ marginBottom: 20 }}
+			style={{
+				marginBottom: 24,
+				shadowColor: theme.colors.text,
+				shadowOffset: { width: 0, height: 8 },
+				shadowOpacity: 0.3,
+				shadowRadius: 16,
+				elevation: 12,
+			}}
 			onPress={async () => {
-				// Request permission
 				const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 				if (status !== 'granted') {
 					alert('Permission to access media library is required!');
 					return;
 				}
 
-				// Launch image picker
 				const result = await ImagePicker.launchImageLibraryAsync({
 					mediaTypes: ImagePicker.MediaTypeOptions.Images,
 					allowsEditing: true,
 					quality: 1,
-					base64: true, // optional: include base64 if uploadThumbnail needs it
+					base64: true,
 				});
 
 				if (result.canceled) return;
 
 				if (result.assets && result.assets.length > 0) {
 					const file = result.assets[0];
-					// Construct a file object similar to the old picker
 					const uploadFile = {
 						name: file.fileName || file.uri.split('/').pop(),
 						type: file.type || 'image',
@@ -52,127 +52,312 @@ function ProfileImage() {
 					uploadThumbnail(uploadFile);
 				}
 			}}
+			activeOpacity={0.8}
 		>
-			<Thumbnail
-				url={user.thumbnail}
-				size={180}
-			/>
-			<View
-				style={{
-					position: 'absolute',
-					bottom: 0,
-					right: 0,
-					backgroundColor: theme.colors.background,
-					width: 40,
-					height: 40,
-					borderRadius: 20,
-					alignItems: 'center',
-					justifyContent: 'center',
-					borderWidth: 3,
-					borderColor: 'white'
-				}}
-			>
-				<FontAwesomeIcon
-					icon='pencil'
-					size={15}
-					color={theme.colors.text}
+			<View style={{
+				borderRadius: 90,
+				borderWidth: 4,
+				borderColor: 'rgba(255, 255, 255, 0.3)',
+				padding: 4,
+			}}>
+				<Thumbnail
+					url={user.thumbnail}
+					size={160}
 				/>
 			</View>
-		</TouchableOpacity>
 
-	)
-}
-
-
-function ProfileLogout() {
-	const theme = useTheme();
-	const logout = useGlobal(state => state.logout)
-
-	return (
-
-		<TouchableOpacity
-			onPress={logout}
-			style={{
-				flexDirection: 'row',
-				height: 52,
-				borderRadius: 26,
+			<View style={{
+				position: 'absolute',
+				bottom: 8,
+				right: 8,
+				width: 44,
+				height: 44,
+				borderRadius: 22,
 				alignItems: 'center',
 				justifyContent: 'center',
-				paddingHorizontal: 26,
-				backgroundColor: theme.colors.primary,
-				marginTop: 40
-			}}
-		>
-			<FontAwesomeIcon
-				icon='right-from-bracket'
-				size={20}
-				color="black"
-				style={{ marginRight: 12 }}
-			/>
-			<Text
-				style={{
-					fontWeight: 'bold',
-					color: "black"
-				}}
-			>
-				Logout
-			</Text>
+				borderWidth: 3,
+				borderColor: 'white',
+				shadowColor: '#667eea',
+				shadowOffset: { width: 0, height: 4 },
+				shadowOpacity: 0.3,
+				shadowRadius: 8,
+				elevation: 6,
+			}}>
+				<LinearGradient
+					colors={['#667eea', '#764ba2']}
+					style={{
+						width: 44,
+						height: 44,
+						borderRadius: 22,
+						alignItems: 'center',
+						justifyContent: 'center',
+					}}
+				>
+					<FontAwesomeIcon
+						icon='pencil'
+						size={16}
+						color="white"
+					/>
+				</LinearGradient>
+			</View>
 		</TouchableOpacity>
-
 	)
 }
 
+function ProfileStats() {
+	const user = useGlobal(state => state.user)
+	const theme = useTheme();
 
+	return (
+		<View style={{
+			flexDirection: 'row',
+			backgroundColor: theme.colors.level3,
+			borderRadius: 20,
+			padding: 20,
+			marginHorizontal: 32,
+			marginBottom: 32,
+			borderWidth: 1,
+			borderColor: theme.colors.border,
+		}}>
+			<View style={{ flex: 1, alignItems: 'center' }}>
+				<Text style={{
+					fontSize: 24,
+					fontWeight: '800',
+					color: theme.colors.title,
+					marginBottom: 4,
+				}}>
+					42
+				</Text>
+				<Text style={{
+					fontSize: 14,
+					fontWeight: '500',
+					color: theme.colors.text,
+				}}>
+					Friends
+				</Text>
+			</View>
+			<View style={{
+				width: 1,
+				backgroundColor: theme.colors.level3,
+				marginHorizontal: 16,
+			}} />
+			<View style={{ flex: 1, alignItems: 'center' }}>
+				<Text style={{
+					fontSize: 24,
+					fontWeight: '800',
+					color: theme.colors.title,
+					marginBottom: 4,
+				}}>
+					128
+				</Text>
+				<Text style={{
+					fontSize: 14,
+					fontWeight: '500',
+					color: theme.colors.text,
+				}}>
+					Messages
+				</Text>
+			</View>
+		</View>
+	)
+}
+
+function ProfileOptions() {
+
+	const navigation = useNavigation();
+	const theme = useTheme();
+	const options = [
+		{ icon: 'cog', label: 'Settings', action: () => { } },
+		{ icon: 'bell', label: 'Notifications', action: () => { navigation.navigate("Notifications") } },
+		{ icon: 'shield', label: 'Privacy', action: () => { } },
+		{ icon: 'question-circle', label: 'Help & Support', action: () => { } },
+	];
+
+	// hook gives access to navigation
+
+	return (
+		<View style={{
+			marginHorizontal: 32,
+			marginBottom: 32,
+		}}>
+			{options.map((option, index) => (
+				<TouchableOpacity
+					key={option.label}
+					onPress={option.action}
+					style={{
+						flexDirection: 'row',
+						alignItems: 'center',
+						backgroundColor: theme.colors.level3,
+						borderRadius: 16,
+						padding: 16,
+						marginBottom: 12,
+						borderWidth: 1,
+						borderColor: theme.colors.border,
+					}}
+					activeOpacity={0.7}
+				>
+					<View style={{
+						width: 40,
+						height: 40,
+						borderRadius: 20,
+						// backgroundColor: theme.colors.background,
+						alignItems: 'center',
+						justifyContent: 'center',
+						marginRight: 16,
+					}}>
+						<FontAwesomeIcon
+							icon={option.icon}
+							size={18}
+							color={theme.colors.title}
+						/>
+					</View>
+					<Text style={{
+						fontSize: 16,
+						fontWeight: '600',
+						color: theme.colors.text,
+						flex: 1,
+					}}>
+						{option.label}
+					</Text>
+					<FontAwesomeIcon
+						icon='chevron-right'
+						size={14}
+						color={theme.colors.primary}
+					/>
+				</TouchableOpacity>
+			))}
+		</View>
+	)
+}
+
+function ProfileLogout() {
+	const logout = useGlobal(state => state.logout)
+	const theme = useTheme();
+
+	return (
+		<View style={{ paddingHorizontal: 32 }}>
+			<TouchableOpacity
+				onPress={logout}
+				style={{
+					height: 56,
+					borderRadius: 28,
+					alignItems: 'center',
+					justifyContent: 'center',
+					marginBottom: 20,
+					borderWidth: 2,
+					borderColor: theme.colors.border,
+					backgroundColor: theme.colors.level3,
+				}}
+				activeOpacity={0.8}
+			>
+				<View style={{
+					flexDirection: 'row',
+					alignItems: 'center',
+				}}>
+					<FontAwesomeIcon
+						icon='right-from-bracket'
+						size={20}
+						color={theme.colors.text}
+						style={{ marginRight: 12 }}
+					/>
+					<Text style={{
+						fontWeight: '700',
+						color: theme.colors.text,
+						fontSize: 16,
+						letterSpacing: 0.5,
+					}}>
+						Sign Out
+					</Text>
+				</View>
+			</TouchableOpacity>
+		</View>
+	)
+}
 
 function ProfileScreen() {
 	const theme = useTheme();
 	const user = useGlobal(state => state.user)
 	const [loading, setLoading] = useState(false);
 
+	if (loading) {
+		return (
+			<LinearGradient
+				colors={[theme.colors.background, theme.colors.background]}
+				style={{ flex: 1 }}
+			>
+				<View style={{
+					flex: 1,
+					justifyContent: 'center',
+					alignItems: 'center'
+				}}>
+					<CustomLoader />
+				</View>
+			</LinearGradient>
+		)
+	}
+
 	return (
 		<LinearGradient
 			colors={[theme.colors.background, theme.colors.background]}
-			style={{
-				flex: 1,
-
-			}}
+			style={{ flex: 1 }}
 		>
-			<View
-				style={{
-					flex: 1,
-					alignItems: 'center',
-					paddingTop: 100
+			<ScrollView
+				showsVerticalScrollIndicator={false}
+				contentContainerStyle={{
+					paddingTop: 40,
+					paddingBottom: 120,
 				}}
 			>
+				<View style={{
+					alignItems: 'center',
+					paddingTop: 20,
+				}}>
+					<ProfileImage />
 
-				<ProfileImage />
+					<View style={{ alignItems: 'center', marginBottom: 32 }}>
+						<Text style={{
+							textAlign: 'center',
+							color: theme.colors.title,
+							fontSize: 28,
+							fontWeight: '800',
+							marginBottom: 8,
+							letterSpacing: 0.5,
+						}}>
+							{user.name}
+						</Text>
+						<Text style={{
+							textAlign: 'center',
+							color: theme.colors.placeholder,
+							fontSize: 16,
+							fontWeight: '500',
+							letterSpacing: 0.3,
+						}}>
+							@{user.username}
+						</Text>
+						<View style={{
+							backgroundColor: 'rgba(255, 255, 255, 0.15)',
+							paddingHorizontal: 16,
+							paddingVertical: 8,
+							borderRadius: 20,
+							marginTop: 16,
+							borderWidth: 1,
+							borderColor: 'rgba(255, 255, 255, 0.2)',
+						}}>
+							<Text style={{
+								color: theme.colors.text,
+								fontSize: 14,
+								fontWeight: '600',
+							}}>
+								🟢 Online
+							</Text>
+						</View>
+					</View>
+				</View>
 
-				<Text
-					style={{
-						textAlign: 'center',
-						color: theme.colors.text,
-						fontSize: 20,
-						fontWeight: 'bold',
-						marginBottom: 6
-					}}
-				>
-					{user.name}
-				</Text>
-				<Text
-					style={{
-						textAlign: 'center',
-						color: theme.colors.text,
-						fontSize: 14
-					}}
-				>
-					@{user.username}
-				</Text>
-
+				<ProfileStats />
+				<ProfileOptions />
 				<ProfileLogout />
-
-
-
-			</View>
+			</ScrollView>
 		</LinearGradient>
 	)
 }

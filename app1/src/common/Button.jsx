@@ -23,7 +23,7 @@ function Button({ title, onPress }) {
         >
             <Text
                 style={{
-                    color: "black",
+                    color: theme.colors.text,
                     fontSize: 18,
                     fontWeight: '600',
                     letterSpacing: 0.8,

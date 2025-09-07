@@ -31,7 +31,7 @@ function Input({ title, value, error, setValue, setError, secureTextEntry = fals
 				}}
 				secureTextEntry={secureTextEntry}
 				style={{
-					backgroundColor: theme.colors.primary,
+					backgroundColor: theme.colors.level3,
 					borderWidth: 1,
 					borderColor: error ? '#ff5555' : theme.colors.secondary,
 					borderRadius: 12,

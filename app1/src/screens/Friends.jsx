@@ -8,62 +8,46 @@ import {
 	TextInput,
 	TouchableOpacity,
 	View,
-	Image
 } from "react-native";
 import { useTheme } from "react-native-paper";
-import Cell from "../common/Cell";
-import Empty from "../common/Empty";
 import Thumbnail from "../common/Thumbnail";
 import utils from "../core/utils";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 import useGlobal from "../core/global";
 
 function FriendRow({ navigation, item }) {
 	const theme = useTheme();
+	const styles = getStyles(theme);
+
 	return (
-
-		<LinearGradient
-			colors={[theme.colors.primary, theme.colors.primary]}
-			style={{
-				flex: 1,
-
+		<TouchableOpacity
+			onPress={() => {
+				navigation.navigate("Messages", item);
 			}}
+			activeOpacity={0.8}
 		>
+			<View style={styles.friendRow}>
+				<View style={styles.thumbnailShadow}>
+					<Thumbnail url={item.friend.thumbnail} size={64} />
+				</View>
 
-			<TouchableOpacity
-				onPress={() => {
-					navigation.navigate("Messages", item);
-				}}
-			>
-				<Cell>
-					<Thumbnail url={item.friend.thumbnail} size={76} />
-					<View style={{ flex: 1, paddingHorizontal: 16 }}>
-						<Text
-							style={{
-								fontWeight: "bold",
-								color: theme.colors.text,
-								marginBottom: 4,
-							}}
-						>
-							{item.friend.name}
-						</Text>
-						<Text style={{ color: theme.colors.text }}>
-							{item.preview}{" "}
-							<Text style={{ color: theme.colors.text, fontSize: 13 }}>
-								{utils.formatTime(item.updated)}
-							</Text>
-						</Text>
-					</View>
-				</Cell>
-			</TouchableOpacity>
-		</LinearGradient>
+				<View style={styles.friendInfo}>
+					<Text style={styles.friendName}>{item.friend.name}</Text>
+					<Text style={styles.friendPreview}>{item.preview}</Text>
+					<Text style={styles.friendTime}>{utils.formatTime(item.updated)}</Text>
+				</View>
+
+				<View style={styles.statusDot} />
+			</View>
+		</TouchableOpacity>
 	);
 }
 
-function FriendsScreen({ navigation, item }) {
+function FriendsScreen({ navigation }) {
 	const friendList = useGlobal((state) => state.friendList);
 	const [searchQuery, setSearchQuery] = useState("");
 	const theme = useTheme();
+	const styles = getStyles(theme);
 
 	// Filter friends based on search query
 	const filteredFriends = friendList
@@ -73,150 +57,272 @@ function FriendsScreen({ navigation, item }) {
 		: [];
 
 	if (friendList === null) {
-		return <ActivityIndicator style={{ flex: 1 }} />;
+		return (
+			<LinearGradient
+				colors={[theme.colors.primary, theme.colors.background]}
+				style={{ flex: 1 }}
+			>
+				<SafeAreaView style={{ flex: 1 }}>
+					<View style={styles.loaderContainer}>
+						<ActivityIndicator size="large" color={theme.colors.text} />
+						<Text style={styles.loaderText}>Loading conversations...</Text>
+					</View>
+				</SafeAreaView>
+			</LinearGradient>
+		);
 	}
 
 	if (filteredFriends.length === 0 && searchQuery) {
-
 		return (
-			<SafeAreaView style={{ flex: 1 }}>
-				<LinearGradient
-					colors={["#1A434E", "#1A434E"]}
-					style={{
-						flex: 1,
+			<LinearGradient
+				colors={[theme.colors.primary, theme.colors.primary]}
+				style={{ flex: 1 }}
+			>
+				<SafeAreaView style={{ flex: 1 }}>
+					<View style={styles.header}>
+						<Text style={styles.headerTitle}>Messages</Text>
+						<Text style={styles.headerSubtitle}>
+							Stay connected with friends
+						</Text>
+					</View>
 
-					}}
-				>
 					<View style={styles.searchContainer}>
 						<TextInput
 							style={styles.searchInput}
-							placeholder="Search your friend..."
+							placeholder="Search conversations..."
 							value={searchQuery}
 							placeholderTextColor={theme.colors.placeholder}
 							onChangeText={setSearchQuery}
 						/>
-						{/* <TouchableOpacity
-						style={styles.searchButton}
-						onPress={() => {}}
-					>
-						<FontAwesomeIcon icon={faArrowRight} size={24} color="#fff" />
-					</TouchableOpacity> */}
 					</View>
-					<Empty icon="search" message="No messages found" />
-				</LinearGradient>
-			</SafeAreaView>
+
+					<View style={styles.emptySearchContainer}>
+						<Text style={styles.emptyTitle}>No messages found</Text>
+						<Text style={styles.emptySubtitle}>
+							Try adjusting your search terms
+						</Text>
+					</View>
+				</SafeAreaView>
+			</LinearGradient>
 		);
 	}
 
 	return (
-		<SafeAreaView style={{ flex: 1 }}>
-			<LinearGradient
-				colors={[theme.colors.background, theme.colors.background]}
-				style={{
-					flex: 1,
-				}}
-			>
+		<LinearGradient
+			colors={[theme.colors.background, theme.colors.background]}
+			style={{ flex: 1 }}
+		>
+			<SafeAreaView style={{ flex: 1 }}>
+
+
 				<View style={styles.searchContainer}>
 					<TextInput
 						style={styles.searchInput}
-						placeholder="Search your friend..."
+						placeholder="Search conversations..."
 						placeholderTextColor={theme.colors.placeholder}
 						value={searchQuery}
 						onChangeText={setSearchQuery}
 					/>
-					{/* <TouchableOpacity
-					style={styles.searchButton}
-					onPress={() => {}}
-				>
-					<FontAwesomeIcon icon={faArrowRight} size={24} color="#fff" />
-				</TouchableOpacity> */}
+				</View>
+				<View style={styles.header}>
+					{/* <Text style={styles.headerTitle}>Messages</Text> */}
+					<Text style={styles.headerSubtitle}>
+						{filteredFriends.length} conversation
+						{filteredFriends.length === 1 ? "" : "s"}
+					</Text>
 				</View>
 
-				{/* List of Friends */}
-				<FlatList
-					data={filteredFriends}
-					renderItem={({ item }) => (
-						<FriendRow navigation={navigation} item={item} />
-					)}
-					keyExtractor={(item) => item.id}
-					ListEmptyComponent={<Empty icon="inbox" message="No friends to display" />}
-				/>
-
-				{/* Floating Buttons */}
-				<View style={styles.floatingButtonContainer}>
-					<TouchableOpacity
-						style={styles.smallButton}
-						onPress={() => {
-							navigation.navigate("AiChat", {
-								item: filteredFriends.length > 0 ? filteredFriends[0] : null, // or pass a specific friend if desired
-							});
+				<View style={{ flex: 1, paddingTop: 8 }}>
+					<FlatList
+						data={filteredFriends}
+						renderItem={({ item }) => (
+							<FriendRow navigation={navigation} item={item} />
+						)}
+						keyExtractor={(item) => item.id}
+						ListEmptyComponent={
+							<View style={styles.emptyList}>
+								<Text style={styles.emptyTitle}>No conversations yet</Text>
+								<Text style={styles.emptySubtitle}>
+									Start connecting with friends to see your messages here
+								</Text>
+							</View>
+						}
+						contentContainerStyle={{
+							paddingBottom: 120,
+							flexGrow: 1,
 						}}
-					>
-						{/* <FontAwesomeIcon icon={faRobot} size={50} color="#00008B" /> */}
-						{/* <Image
-							source={require('../assets/icon.png')}
-							style={{
-								width: 100,
-								height: 80,
-
-							}}
-
-						/> */}
-
-						{/* <LottieView
-							source={require('../assets/iconn.json')} // Update to your Lottie JSON path
-							autoPlay
-							loop
-							style={styles.lottie}
-						/> */}
-					</TouchableOpacity>
+						showsVerticalScrollIndicator={false}
+					/>
 				</View>
 
-			</LinearGradient>
-		</SafeAreaView>
+				{/* AI Chat Floating Button */}
+				{/* <TouchableOpacity
+          style={styles.floatingButton}
+          onPress={() => {
+            navigation.navigate("AiChat", {
+              item: filteredFriends.length > 0 ? filteredFriends[0] : null,
+            });
+          }}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={["#FF6B9D", "#C44569"]}
+            style={styles.floatingButtonGradient}
+          >
+            <Text style={styles.floatingButtonText}>AI</Text>
+          </LinearGradient>
+        </TouchableOpacity> */}
+			</SafeAreaView>
+		</LinearGradient>
 	);
 }
 
-const styles = StyleSheet.create({
-	floatingButtonContainer: {
-		position: "absolute",
-		bottom: 100,
-		right: 20,
-		alignItems: "center",
-	},
-	smallButton: {
-		width: 70,
-		height: 70,
-		borderRadius: 25,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	searchContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		padding: 10,
-		borderBottomWidth: 1,
-		borderBottomColor: "grey",
-		// opacity:0.2,
-	},
-	searchInput: {
-		flex: 1,
-		paddingHorizontal: 10,
-		paddingVertical: 8,
-		borderWidth: 1,
-		borderColor: "#ccc",
-		borderRadius: 18,
-	},
-	searchButton: {
-		padding: 8,
-		backgroundColor: "#6200ee",
-		borderRadius: 5,
-		marginLeft: 10,
-	},
-	lottie: {
-		width: 250, // Adjust to match your design
-		height: 150,
-	},
-});
+function getStyles(theme) {
+	return StyleSheet.create({
+		header: {
+			paddingHorizontal: 16,
+			paddingTop: 8,
+			paddingBottom: 16,
+		},
+		headerTitle: {
+			fontSize: 28,
+			fontWeight: "800",
+			color: theme.colors.title,
+			marginBottom: 4,
+			letterSpacing: 0.5,
+		},
+		headerSubtitle: {
+			fontSize: 16,
+			color: theme.colors.placeholder,
+			fontWeight: "500",
+		},
+		searchContainer: {
+			paddingHorizontal: 16,
+			paddingBottom: 16,
+		},
+		searchInput: {
+			backgroundColor: theme.colors.SearchBar,
+			paddingHorizontal: 20,
+			paddingVertical: 16,
+			borderRadius: 25,
+			fontSize: 16,
+			color: theme.colors.text,
+			borderWidth: 1,
+			borderColor: theme.colors.secondary,
+		},
+		loaderContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		loaderText: {
+			color: theme.colors.text,
+			marginTop: 16,
+			fontSize: 16,
+			opacity: 0.8,
+		},
+		emptySearchContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		emptyTitle: {
+			color: theme.colors.text,
+			fontSize: 18,
+			fontWeight: "600",
+			marginBottom: 8,
+		},
+		emptySubtitle: {
+			color: theme.colors.secondary,
+			fontSize: 14,
+			textAlign: "center",
+			paddingHorizontal: 40,
+		},
+		emptyList: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			paddingTop: 100,
+		},
+		friendRow: {
+			backgroundColor: theme.colors.background,
+			marginHorizontal: 10,
+			marginVertical: 6,
+			borderRadius: 16,
+			padding: 16,
+			flexDirection: "row",
+			alignItems: "center",
+			shadowColor: "#000",
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.1,
+			shadowRadius: 8,
+			elevation: 3,
+			borderBottomWidth: 0.5,
+			borderBottomColor: theme.colors.secondary,
+		},
+		thumbnailShadow: {
+			shadowColor: "#000",
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.15,
+			shadowRadius: 4,
+			elevation: 3,
+		},
+		friendInfo: {
+			flex: 1,
+			paddingHorizontal: 16,
+			paddingRight: 12,
+		},
+		friendName: {
+			fontWeight: "700",
+			color: theme.colors.title,
+			fontSize: 17,
+			marginBottom: 4,
+			letterSpacing: 0.2,
+		},
+		friendPreview: {
+			color: theme.colors.text,
+			fontSize: 14,
+			lineHeight: 18,
+			marginBottom: 2,
+		},
+		friendTime: {
+			color: theme.colors.tertiary,
+			fontSize: 12,
+			fontWeight: "500",
+		},
+		statusDot: {
+			width: 8,
+			height: 8,
+			borderRadius: 4,
+			backgroundColor: theme.colors.button,
+			opacity: 0.8,
+		},
+		floatingButton: {
+			position: "absolute",
+			bottom: 30,
+			right: 20,
+			width: 64,
+			height: 64,
+			borderRadius: 32,
+			shadowColor: "#FF6B9D",
+			shadowOffset: { width: 0, height: 6 },
+			shadowOpacity: 0.4,
+			shadowRadius: 12,
+			elevation: 8,
+		},
+		floatingButtonGradient: {
+			flex: 1,
+			borderRadius: 32,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		floatingButtonText: {
+			color: theme.colors.text,
+			fontSize: 18,
+			fontWeight: "700",
+			letterSpacing: 0.5,
+		},
+	});
+}
 
 export default FriendsScreen;

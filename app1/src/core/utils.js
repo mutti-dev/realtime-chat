@@ -20,7 +20,7 @@ function thumbnail(url) {
 		return ProfileImage
 	}
 	return {
-		uri: 'http://' + ADDRESS + url
+		uri: 'https://' + ADDRESS + url
 	}
 }
 
@@ -29,7 +29,7 @@ function image(url) {
 		return
 	}
 	return {
-		uri: 'http://' + ADDRESS + url
+		uri: 'https://' + ADDRESS + url
 	}
 }
 

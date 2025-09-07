@@ -15,6 +15,8 @@ import useGlobal from "../core/global"
 import CustomLoader from "../common/CustomLoader"
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from "react-native-paper"
+import ShowImage from "../common/ShowImage"
+
 
 function SignUpScreen({ navigation }) {
 	const theme = useTheme();
@@ -127,8 +129,9 @@ function SignUpScreen({ navigation }) {
 			>
 				<KeyboardAvoidingView behavior="height" style={{ flex: 1 }}>
 					<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+						
 						<View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 16 }}>
-
+							
 							<Text
 								style={{
 									textAlign: 'center',
@@ -187,7 +190,7 @@ function SignUpScreen({ navigation }) {
 
 							<Button title='Sign Up' onPress={onSignUp} />
 
-							<Text style={{ textAlign: 'center', marginTop: 40,  color: theme.colors.text, }}>
+							<Text style={{ textAlign: 'center', marginTop: 40, color: theme.colors.text, }}>
 								Already have an account? <Text
 									style={{ color: 'blue' }}
 									onPress={() => navigation.goBack()}

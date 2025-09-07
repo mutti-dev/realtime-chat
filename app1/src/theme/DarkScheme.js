@@ -1,12 +1,14 @@
 export const DarkScheme = {
-  primary: '#D3D3D3', // Vibrant blue for primary actions
-  secondary: '#ECDFCC', // Cool gray for less prominent elements
-  tertiary: '#E74C3C', // Soft red for accents or highlights
-  error: '#E74C3C', // Bright red for errors
-  title: '#F5F7FA', // Light gray-white for titles
-  text: 'white', // Softer white for readability
-  background: 'black',
-  placeholder: '#3C3D37',
-  button: '#E8B86D',
+  primary: '#0A84FF',          // Vibrant blue for primary actions/buttons
+  secondary: '#1C1C1E',        // Dark gray for backgrounds and cards
+  tertiary: '#FF5C5C',         // Soft red for accents/warnings
+  error: '#FF3B30',            // Bright red for errors
+  title: '#F5F5F7',            // Light gray for titles/headings
+  text: '#E5E5EA',             // Main text color for readability
+  background: '#000000',       // Default background color
+  level3: '#2C2C2E',           // Slightly elevated surfaces, e.g., cards
+  placeholder: '#8E8E93',      // Gray for placeholder text
+  button: '#0A84FF',           // Primary button color (matching primary)
+  border: '#3A3A3C',           // Dark gray for borders/dividers
+  searchBar: '#1C1C1E',        // Background for search input
 };
-  

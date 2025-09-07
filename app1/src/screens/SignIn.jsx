@@ -20,6 +20,8 @@ import useGlobal from "../core/global"
 import { useTheme } from "react-native-paper"
 import CustomLoader from "../common/CustomLoader"
 import { LinearGradient } from 'expo-linear-gradient';
+import ShowImage from "../common/ShowImage"
+
 
 
 
@@ -178,6 +180,8 @@ function SignInScreen({ navigation }) {
 									right:10,
 								}}
 							/> */}
+
+							<ShowImage url={'/media/thumbnails/mutti01_OMF50Cw.jpg'} size={100}  />
 							<Title text='Sign In' color={theme.colors.text} />
 							{loading && <CustomLoader message="Signing in, please wait..." />}
 

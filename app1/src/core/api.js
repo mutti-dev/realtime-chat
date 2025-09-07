@@ -26,14 +26,14 @@ export const ADDRESS = Platform.select({
   ios: "localhost:8000", // iOS simulator
   //   android: '10.0.2.2:8000', // Android emulator
   // For physical devices, replace with ngrok URL or LAN IP
-  android: "https://equal-useful-buck.ngrok-free.app",
+  android: "equal-useful-buck.ngrok-free.app",
 });
 
 // Create axios instance
 const api = axios.create({
   baseURL:
-    Platform.OS === "android" && !ADDRESS.startsWith("http")
-      ? "http://" + ADDRESS
+    Platform.OS === "android" && !ADDRESS.startsWith("https")
+      ? "https://" + ADDRESS
       : ADDRESS,
   headers: {
     "Content-Type": "application/json",
