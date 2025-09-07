@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "realtimechat",
+    "slug": "realtimechat",
+    "version": "1.0.0",
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}

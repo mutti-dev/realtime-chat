@@ -73,10 +73,11 @@ class AiMessage(models.Model):
 	created = models.DateTimeField(auto_now_add=True)
 	rating = models.TextField(blank=True)
 
+
 	
 
 	def __str__(self):
-		return self.user.username + ': ' + self.text
+		return self.user.username + ': ' + self.user_query
 
 
 

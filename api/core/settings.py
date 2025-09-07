@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,7 +25,12 @@ SECRET_KEY = 'django-insecure-4j3g5p%*n&%4jmd50$!7yd63_%nm*@qk2k)gafe*35zp=y1k%@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '10.0.2.2', '192.168.18.77', '192.168.0.103']
+ALLOWED_HOSTS = ['localhost', '10.0.2.2', '192.168.18.77', '192.168.0.103', 'equal-useful-buck.ngrok-free.app']
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.ngrok-free.app",
+]
+
 
 
 AUTH_USER_MODEL = 'chat.User'
@@ -70,7 +75,6 @@ INSTALLED_APPS = [
 	'daphne',
 	'rest_framework',
 	'rest_framework_simplejwt',
-
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -158,6 +162,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Add this for collectstatic inside Docker
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 
 # Default primary key field type
