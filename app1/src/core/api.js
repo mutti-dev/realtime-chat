@@ -24,15 +24,15 @@ import { Platform } from "react-native";
 // Set backend address depending on platform
 export const ADDRESS = Platform.select({
   ios: "localhost:8000", // iOS simulator
-  //   android: '10.0.2.2:8000', // Android emulator
+  // android: "192.168.0.103:8000", // Android emulator
   // For physical devices, replace with ngrok URL or LAN IP
-  android: "equal-useful-buck.ngrok-free.app",
+  android: "c4859e45ae1e.ngrok-free.app",
 });
 
 // Create axios instance
 const api = axios.create({
   baseURL:
-    Platform.OS === "android" && !ADDRESS.startsWith("https")
+    Platform.OS === "android" && !ADDRESS.startsWith("http")
       ? "https://" + ADDRESS
       : ADDRESS,
   headers: {

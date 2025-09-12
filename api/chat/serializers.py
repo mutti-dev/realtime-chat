@@ -42,9 +42,12 @@ class UserSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = User
 		fields = [
+			'id',
 			'username',
 			'name',
-			'thumbnail'
+			'thumbnail',
+			'is_online',
+			'last_online',
 		]
 
 	def get_name(self, obj):

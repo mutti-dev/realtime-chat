@@ -182,12 +182,20 @@ function responseAI(set, get, data) {
   }));
 }
 
+function responseUserStatus(set, get, data) {
+  console.log("responseUserStatus got:", data);
+  const userStatuses = {...get().userStatuses};
+  userStatuses[data.username] = {is_online: data.is_online, last_online: data.last_online};
+  set({ userStatuses });
+}
+
 const useGlobal = create((set, get) => ({
   //---------------------
   //   Initialization
   //---------------------
 
   initialized: false,
+  userStatuses: {},
 
   init: async () => {
     const credentials = await secure.get('credentials');
@@ -315,6 +323,7 @@ const useGlobal = create((set, get) => ({
         'request.list': responseRequestList,
         'ai.query': responseOllama,
         'ai.response': responseAI,
+        'user.status': responseUserStatus,
         search: responseSearch,
         thumbnail: responseThumbnail,
         file: responseFile,

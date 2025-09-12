@@ -276,7 +276,8 @@ function ProfileLogout() {
 
 function ProfileScreen() {
 	const theme = useTheme();
-	const user = useGlobal(state => state.user)
+	const user = useGlobal(state => state.user);
+
 	const [loading, setLoading] = useState(false);
 
 	if (loading) {
@@ -334,7 +335,7 @@ function ProfileScreen() {
 						}}>
 							@{user.username}
 						</Text>
-						<View style={{
+						{/* <View style={{
 							backgroundColor: 'rgba(255, 255, 255, 0.15)',
 							paddingHorizontal: 16,
 							paddingVertical: 8,
@@ -343,14 +344,21 @@ function ProfileScreen() {
 							borderWidth: 1,
 							borderColor: 'rgba(255, 255, 255, 0.2)',
 						}}>
-							<Text style={{
-								color: theme.colors.text,
-								fontSize: 14,
-								fontWeight: '600',
-							}}>
-								🟢 Online
+
+							<Text
+								style={{
+									color: theme.colors.text,
+									fontSize: 14,
+									fontWeight: '600',
+								}}
+							>
+								{user?.is_online
+									? "🟢 Online"
+									: user?.last_online
+										? `Last seen ${new Date(user.last_online).toLocaleString()}`
+										: "Offline"}
 							</Text>
-						</View>
+						</View> */}
 					</View>
 				</View>
 

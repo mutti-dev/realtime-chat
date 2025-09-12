@@ -16,6 +16,8 @@ class User(AbstractUser):
 		null=True,
 		blank=True
 	)
+	is_online = models.BooleanField(default=False)
+	last_online = models.DateTimeField(auto_now=True)
 
 
 class Connection(models.Model):

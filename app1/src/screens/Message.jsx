@@ -11,12 +11,18 @@ import { ADDRESS } from "../core/api";
 import { faTimes, faFile, faPaperPlane, faImage } from "@fortawesome/free-solid-svg-icons";
 
 function MessageHeader({ friend }) {
+	const user = useGlobal(state => state.user);
+	const userStatuses = useGlobal(state => state.userStatuses);
+	const status = userStatuses[friend.username];
+	console.log('Status of', friend.username, status);
+	console.log('UserStatuses:', userStatuses);
 	const theme = useTheme();
 	return (
 		<View style={{
 			flexDirection: 'row',
 			alignItems: 'center',
 			paddingHorizontal: 8,
+
 		}}>
 			<View style={{
 				shadowColor: '#000',
@@ -29,20 +35,26 @@ function MessageHeader({ friend }) {
 			</View>
 			<View style={{ marginLeft: 12 }}>
 				<Text style={{
-					color: 'white',
+					color: theme.colors.title,
 					fontSize: 18,
 					fontWeight: '700',
 					letterSpacing: 0.3,
 				}}>
 					{friend.name}
 				</Text>
-				<Text style={{
-					color: 'rgba(255, 255, 255, 0.7)',
-					fontSize: 12,
-					fontWeight: '500',
-					marginTop: 1,
-				}}>
-					Online
+				<Text
+					style={{
+						color: theme.colors.text,
+						fontSize: 12,
+						fontWeight: '500',
+						marginTop: 1,
+					}}
+				>
+					{friend?.is_online
+						? "Online"
+						: friend?.last_online
+							? `Last seen ${new Date(friend.last_online).toLocaleString()}`
+							: "Offline"}
 				</Text>
 			</View>
 		</View>
@@ -102,9 +114,9 @@ function MessageBubbleMe({ text, file, onFilePress, isSending }) {
 						)}
 					</TouchableOpacity>
 				) : (
-					<Text style={{ 
-						color: 'white', 
-						fontSize: 16, 
+					<Text style={{
+						color: 'white',
+						fontSize: 16,
 						lineHeight: 20,
 						fontWeight: '500',
 					}}>
@@ -230,9 +242,9 @@ function MessageBubbleFriend({ text = '', friend, typing = false, file, onFilePr
 						)}
 					</TouchableOpacity>
 				) : (
-					<Text style={{ 
-						color: '#333', 
-						fontSize: 16, 
+					<Text style={{
+						color: '#333',
+						fontSize: 16,
 						lineHeight: 20,
 						fontWeight: '500',
 					}}>
@@ -482,11 +494,11 @@ function MessageInput({ message, setMessage, onSend, onFileSend }) {
 					elevation: canSend ? 3 : 0,
 				}}
 			>
-				<FontAwesomeIcon 
-					icon={faPaperPlane} 
-					size={16} 
-					color="white" 
-					style={{ marginLeft: 2 }} 
+				<FontAwesomeIcon
+					icon={faPaperPlane}
+					size={16}
+					color="white"
+					style={{ marginLeft: 2 }}
 				/>
 			</TouchableOpacity>
 		</View>
@@ -510,7 +522,7 @@ function MessagesScreen({ navigation, route }) {
 		navigation.setOptions({
 			headerTitle: () => <MessageHeader friend={friend} />,
 			headerStyle: {
-				backgroundColor: 'transparent',
+				backgroundColor: theme.colors.background,
 			},
 			headerBackground: () => (
 				<LinearGradient
