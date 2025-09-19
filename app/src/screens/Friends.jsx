@@ -75,16 +75,11 @@ function FriendsScreen({ navigation }) {
 	if (filteredFriends.length === 0 && searchQuery) {
 		return (
 			<LinearGradient
-				colors={[theme.colors.primary, theme.colors.primary]}
+				colors={[theme.colors.background, theme.colors.background]}
 				style={{ flex: 1 }}
 			>
 				<SafeAreaView style={{ flex: 1 }}>
-					<View style={styles.header}>
-						<Text style={styles.headerTitle}>Messages</Text>
-						<Text style={styles.headerSubtitle}>
-							Stay connected with friends
-						</Text>
-					</View>
+					
 
 					<View style={styles.searchContainer}>
 						<TextInput
@@ -233,7 +228,7 @@ function getStyles(theme) {
 			marginBottom: 8,
 		},
 		emptySubtitle: {
-			color: theme.colors.secondary,
+			color: theme.colors.placeholder,
 			fontSize: 14,
 			textAlign: "center",
 			paddingHorizontal: 40,

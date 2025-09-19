@@ -191,7 +191,8 @@ function HomeScreen({ navigation }) {
     }, []);
 
     return (
-        <View style={{ flex: 1 }}>
+
+        <SafeAreaView style={{ flex: 1 }}>
             <Tab.Navigator
                 tabBar={props => <CustomTabBar {...props} />}
                 screenOptions={({ route }) => ({
@@ -205,7 +206,7 @@ function HomeScreen({ navigation }) {
                 {/* <Tab.Screen name="Requests" component={RequestsScreen} /> */}
                 <Tab.Screen name="Profile" component={ProfileScreen} />
             </Tab.Navigator>
-        </View>
+        </SafeAreaView>
     );
 }
 

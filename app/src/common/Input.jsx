@@ -43,7 +43,7 @@ function Input({ title, value, error, setValue, setError, secureTextEntry = fals
 					shadowOpacity: 0.1,
 					shadowRadius: 4,
 					elevation: 2,
-					color: theme.colors.placeholder,
+					color: theme.colors.text,
 				}}
 				value={value}
 			/>

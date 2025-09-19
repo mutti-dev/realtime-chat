@@ -26,7 +26,7 @@ export const ADDRESS = Platform.select({
   ios: "localhost:8000", // iOS simulator
   // android: "192.168.0.103:8000", // Android emulator
   // For physical devices, replace with ngrok URL or LAN IP
-  android: "c4859e45ae1e.ngrok-free.app",
+  android: "equal-useful-buck.ngrok-free.app",
 });
 
 // Create axios instance

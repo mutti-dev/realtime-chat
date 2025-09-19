@@ -462,12 +462,13 @@ function MessageInput({ message, setMessage, onSend, onFileSend }) {
 			}}>
 				<TextInput
 					placeholder="Type a message..."
+					color={theme.colors.text}
 					placeholderTextColor={theme.colors.placeholder}
 					value={message}
 					onChangeText={setMessage}
 					style={{
 						fontSize: 16,
-						color: theme.colors.background,
+						color: theme.colors.text,
 						lineHeight: 20,
 						paddingVertical: 0,
 					}}
