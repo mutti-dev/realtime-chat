@@ -48,13 +48,17 @@ class UserSerializer(serializers.ModelSerializer):
 			'thumbnail',
 			'is_online',
 			'last_online',
+			'is_admin',
+			# new fields exposed to client
+			'theme',
+			'notifications_enabled',
+			'settings',
 		]
 
 	def get_name(self, obj):
-		fname = obj.first_name.capitalize()
-		lname = obj.last_name.capitalize()
-		return fname + ' ' + lname
-
+		fname = (obj.first_name or '').capitalize()
+		lname = (obj.last_name or '').capitalize()
+		return (fname + ' ' + lname).strip()
 
 class SearchSerializer(UserSerializer):
 	status = serializers.SerializerMethodField()
@@ -148,3 +152,18 @@ class MessageSerializer(serializers.ModelSerializer):
 
 	def get_is_me(self, obj):
 		return self.context['user'] == obj.user
+
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    # Optional fields for updating profile
+    first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    password = serializers.CharField(required=False, write_only=True, allow_blank=False, min_length=6)
+    # settings / preferences
+    theme = serializers.ChoiceField(choices=(('light','Light'),('dark','Dark')), required=False, allow_null=True)
+    notifications_enabled = serializers.BooleanField(required=False)
+    settings = serializers.JSONField(required=False)
+
+    def validate(self, attrs):
+        # Add any cross-field validation if required
+        return attrs

@@ -15,12 +15,12 @@ import Title from "../common/Title"
 import Input from "../common/Input"
 import Button from "../common/Button"
 import api from "../core/api"
-import utils from "../core/utils"
+
 import useGlobal from "../core/global"
 import { useTheme } from "react-native-paper"
 import CustomLoader from "../common/CustomLoader"
 import { LinearGradient } from 'expo-linear-gradient';
-import ShowImage from "../common/ShowImage"
+
 
 
 
@@ -131,8 +131,10 @@ function SignInScreen({ navigation }) {
 				login(
 					credentials,
 					response.data.user,
-					response.data.tokens
+					response.data.tokens,
+					
 				);
+				// console.log('User logged in and global state updated.', response.data.user);
 			})
 			.catch((error) => {
 				if (error.response) {
@@ -181,7 +183,7 @@ function SignInScreen({ navigation }) {
 								}}
 							/> */}
 
-							<ShowImage url={'/media/thumbnails/mutti01_OMF50Cw.jpg'} size={100}  />
+							{/* <ShowImage url={'/media/thumbnails/mutti01_OMF50Cw.jpg'} size={100}  /> */}
 							<Title text='Sign In' color={theme.colors.text} />
 							{loading && <CustomLoader message="Signing in, please wait..." />}
 

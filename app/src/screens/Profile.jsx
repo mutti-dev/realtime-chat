@@ -3,6 +3,7 @@ import { useLayoutEffect, useState } from "react"
 import { View, Text, Image, TouchableOpacity, ScrollView, Animated } from "react-native"
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker'
+import * as ImageManipulator from 'expo-image-manipulator'
 import useGlobal from "../core/global"
 import utils from "../core/utils"
 import Thumbnail from "../common/Thumbnail"
@@ -33,23 +34,41 @@ function ProfileImage() {
 				}
 
 				const result = await ImagePicker.launchImageLibraryAsync({
-					mediaTypes: ImagePicker.MediaTypeOptions.Images,
+					mediaTypes: ImagePicker.MediaType.Images,
 					allowsEditing: true,
 					quality: 1,
-					base64: true,
+					base64: false, // avoid huge base64 from picker
 				});
 
 				if (result.canceled) return;
 
 				if (result.assets && result.assets.length > 0) {
-					const file = result.assets[0];
-					const uploadFile = {
-						name: file.fileName || file.uri.split('/').pop(),
-						type: file.type || 'image',
-						data: file.base64 || null,
-						uri: file.uri,
-					};
-					uploadThumbnail(uploadFile);
+					const asset = result.assets[0];
+					try {
+						// Resize/compress client-side to reduce payload & memory pressure
+						const manipResult = await ImageManipulator.manipulateAsync(
+							asset.uri,
+							[{ resize: { width: Math.min(asset.width || 1024, 1024) } }],
+							{ compress: 0.75, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+						);
+
+						const uploadFile = {
+							name: asset.fileName || asset.uri.split('/').pop(),
+							type: 'image/jpeg',
+							base64: manipResult.base64 || null,
+							uri: manipResult.uri,
+						};
+						uploadThumbnail && uploadThumbnail(uploadFile);
+					} catch (err) {
+						// fallback: send original small payload if base64 unavailable
+						const uploadFile = {
+							name: asset.fileName || asset.uri.split('/').pop(),
+							type: asset.type || 'image',
+							base64: null,
+							uri: asset.uri,
+						};
+						uploadThumbnail && uploadThumbnail(uploadFile);
+					}
 				}
 			}}
 			activeOpacity={0.8}
@@ -363,8 +382,8 @@ function ProfileScreen() {
 				</View>
 
 				<ProfileStats />
-				<ProfileOptions />
-				<ProfileLogout />
+				{/* <ProfileOptions /> */}
+				{/* <ProfileLogout /> */}
 			</ScrollView>
 		</LinearGradient>
 	)

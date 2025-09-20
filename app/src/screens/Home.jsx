@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useLayoutEffect } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { SafeAreaView, Text, TouchableOpacity, View, StyleSheet, Dimensions } from "react-native";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -11,6 +10,8 @@ import ProfileScreen from "./Profile";
 import useGlobal from "../core/global";
 import Thumbnail from "../common/Thumbnail";
 import { useTheme } from "react-native-paper";
+import SettingsScreen from './Settings';
+
 
 const Tab = createBottomTabNavigator();
 const { width } = Dimensions.get('window');
@@ -18,6 +19,17 @@ const { width } = Dimensions.get('window');
 function CustomTabBar({ state, descriptors, navigation }) {
     const theme = useTheme();
     const styles = getStyles(theme);
+
+    const requestList = useGlobal(state => state.requestList);
+
+    const pendingCount = requestList ? requestList.length : 0;
+
+    const iconConfig = useMemo(() => ({
+        Requests: { icon: 'bell', label: 'Requests' },
+        Friends: { icon: 'comment', label: 'Messages' },
+        Profile: { icon: 'user', label: 'Profile' },
+        Settings: { icon: 'cog', label: 'Settings' },
+    }), []);
 
     return (
         <View style={styles.tabBarWrapper}>
@@ -28,28 +40,19 @@ function CustomTabBar({ state, descriptors, navigation }) {
                 >
                     <View style={styles.tabBar}>
                         {state.routes.map((route, index) => {
-                            const { options } = descriptors[route.key];
                             const isFocused = state.index === index;
-
                             const onPress = () => {
                                 const event = navigation.emit({
                                     type: 'tabPress',
                                     target: route.key,
                                     canPreventDefault: true,
                                 });
-
                                 if (!isFocused && !event.defaultPrevented) {
                                     navigation.navigate(route.name);
                                 }
                             };
 
-                            const iconConfig = {
-                                Requests: { icon: 'bell', label: 'Requests' },
-                                Friends: { icon: 'comment', label: 'Messages' },
-                                Profile: { icon: 'user', label: 'Profile' },
-                            };
-
-                            const config = iconConfig[route.name];
+                            const config = iconConfig[route.name] || { icon: 'circle', label: route.name };
 
                             return (
                                 <TouchableOpacity
@@ -78,6 +81,14 @@ function CustomTabBar({ state, descriptors, navigation }) {
                                             size={isFocused ? 22 : 20}
                                             color={isFocused ? '#667eea' : '#999'}
                                         />
+
+                                        {route.name === 'Requests' && pendingCount > 0 && (
+                                            <View style={styles.badge}>
+                                                <Text style={styles.badgeText}>
+                                                    {pendingCount > 99 ? '99+' : String(pendingCount)}
+                                                </Text>
+                                            </View>
+                                        )}
                                     </View>
 
                                     <Text style={[
@@ -98,117 +109,108 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
 function CustomHeader({ navigation, route }) {
     const theme = useTheme();
-    const user = useGlobal(state => state.user);
     const styles = getStyles(theme);
+    const user = useGlobal(state => state.user);
+    const requestList = useGlobal(state => state.requestList);
+    const pendingCount = requestList ? requestList.length : 0;
 
-    const getHeaderTitle = () => {
+    const getHeaderTitle = useCallback(() => {
         switch (route.name) {
-            case 'Friends':
-                return 'Messages';
-            case 'Requests':
-                return 'Requests';
-            case 'Profile':
-                return 'Profile';
-            default:
-                return 'Messages';
+            case 'Friends': return 'Messages';
+            case 'Requests': return 'Requests';
+            case 'Profile': return 'Profile';
+            case 'Settings': return 'Settings';
+            default: return 'Messages';
         }
-    };
+    }, [route.name]);
 
-    const onSearch = () => {
-        navigation.navigate('Search');
-    };
+    const onSearch = useCallback(() => navigation.navigate('Search'), [navigation]);
+    const onGoRequests = useCallback(() => navigation.navigate('Requests'), [navigation]);
+    const onGoSettings = useCallback(() => navigation.navigate('Settings'), [navigation]);
 
     return (
         <LinearGradient
             colors={[styles.headerContainer.backgroundColor, styles.headerContainer.backgroundColor]}
             style={styles.headerContainer}
         >
-            <SafeAreaView>
+
                 <View style={styles.headerContent}>
                     <View style={styles.headerLeft}>
                         <View style={styles.avatarContainer}>
-                            <Thumbnail
-                                url={user.thumbnail}
-                                size={36}
-                            />
+                            <Thumbnail url={user.thumbnail} size={36} />
                         </View>
                         <View style={styles.headerTitleContainer}>
-                            <Text style={styles.headerTitle}>
-                                {getHeaderTitle()}
-                            </Text>
-                            <Text style={styles.headerSubtitle}>
-                                Stay connected
-                            </Text>
+                            <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
+                            <Text style={styles.headerSubtitle}>Stay connected</Text>
                         </View>
                     </View>
 
-                    <TouchableOpacity
-                        onPress={onSearch}
-                        style={styles.searchButton}
-                        activeOpacity={0.7}
-                    >
-                        <FontAwesomeIcon
-                            icon='magnifying-glass'
-                            size={20}
-                            color={theme.colors.title}
-                        />
+                    <TouchableOpacity onPress={onSearch} style={styles.iconAction} activeOpacity={0.7}>
+                        <FontAwesomeIcon icon='magnifying-glass' size={18} color={theme.colors.title} />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => navigation.navigate('Notifications')}
-                        style={styles.bellButton}
-                        activeOpacity={0.7}
-                    >
-                        <FontAwesomeIcon
-                            icon='bell'
-                            size={20}
-                            color={theme.colors.title}
-                        />
-                    </TouchableOpacity>
+
+                    {/* <TouchableOpacity onPress={onGoRequests} style={styles.iconAction} activeOpacity={0.7}>
+                        <FontAwesomeIcon icon='bell' size={18} color={theme.colors.title} />
+                        {pendingCount > 0 && (
+                            <View style={styles.headerBadge}>
+                                <Text style={styles.headerBadgeText}>{pendingCount > 99 ? '99+' : String(pendingCount)}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity> */}
+                    {/* {user?.is_superuser && (<TouchableOpacity onPress={onGoSettings} style={styles.iconAction} activeOpacity={0.7}>
+                        <FontAwesomeIcon icon='cog' size={18} color={theme.colors.title} />
+                    </TouchableOpacity>)} */}
+
+
                 </View>
-            </SafeAreaView>
+
         </LinearGradient>
     );
 }
 
 function HomeScreen({ navigation }) {
     const theme = useTheme();
-    const socketConnect = useGlobal(state => state.socketConnect);
-    const socketClose = useGlobal(state => state.socketClose);
-    const user = useGlobal(state => state.user);
     const styles = getStyles(theme);
 
+
+
+    const socketConnect = useGlobal(state => state.socketConnect);
+    const socketClose = useGlobal(state => state.socketClose);
+
     useLayoutEffect(() => {
-        navigation.setOptions({
-            headerShown: false
-        });
-    }, []);
+        navigation.setOptions({ headerShown: false });
+    }, [navigation]);
 
     useEffect(() => {
-        socketConnect();
-        return () => {
-            socketClose();
-        };
-    }, []);
+        socketConnect && socketConnect();
+        return () => { socketClose && socketClose(); };
+    }, [socketConnect, socketClose]);
 
     return (
 
-        <SafeAreaView style={{ flex: 1 }}>
-            <Tab.Navigator
-                tabBar={props => <CustomTabBar {...props} />}
-                screenOptions={({ route }) => ({
-                    header: ({ navigation }) => (
-                        <CustomHeader navigation={navigation} route={route} />
-                    ),
-                    tabBarStyle: { display: 'none' },
-                })}
-            >
-                <Tab.Screen name="Friends" component={FriendsScreen} />
-                {/* <Tab.Screen name="Requests" component={RequestsScreen} /> */}
-                <Tab.Screen name="Profile" component={ProfileScreen} />
-            </Tab.Navigator>
-        </SafeAreaView>
+        <Tab.Navigator
+            tabBar={props => <CustomTabBar {...props} />}
+            screenOptions={({ route }) => ({
+                header: ({ navigation }) => (
+                    <CustomHeader navigation={navigation} route={route} />
+                ),
+                tabBarStyle: { display: "none" },
+            })}
+        >
+            <Tab.Screen name="Friends" component={FriendsScreen} />
+            <Tab.Screen name="Requests" component={RequestsScreen} />
+            <Tab.Screen name="Profile" component={ProfileScreen} />
+            <Tab.Screen name="Settings"
+                component={SettingsScreen}
+            />
+
+
+
+        </Tab.Navigator>
+
     );
 }
+
 
 function getStyles(theme) {
     return StyleSheet.create({
@@ -227,8 +229,8 @@ function getStyles(theme) {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingHorizontal: 20,
-            paddingVertical: 12,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
         },
         headerLeft: {
             flexDirection: 'row',
@@ -243,34 +245,45 @@ function getStyles(theme) {
             elevation: 4,
         },
         headerTitleContainer: {
-            marginLeft: 16,
+            marginLeft: 12,
         },
         headerTitle: {
-            fontSize: 22,
+            fontSize: 20,
             fontWeight: '700',
             color: theme.colors.title,
             letterSpacing: 0.3,
         },
         headerSubtitle: {
-            fontSize: 13,
+            fontSize: 12,
             color: theme.colors.text,
             fontWeight: '500',
             marginTop: 2,
         },
-        searchButton: {
+        iconAction: {
             width: 40,
             height: 40,
-            backgroundColor: theme.colors.background,
             alignItems: 'center',
             justifyContent: 'center',
+            marginLeft: 8,
         },
-        bellButton: {
-            width: 40,
-            height: 40,
-            backgroundColor: theme.colors.background,
+        // header badge
+        headerBadge: {
+            position: 'absolute',
+            top: 4,
+            right: 4,
+            backgroundColor: '#FF3B30',
+            minWidth: 18,
+            height: 18,
+            borderRadius: 9,
             alignItems: 'center',
             justifyContent: 'center',
-
+            paddingHorizontal: 4,
+            elevation: 6,
+        },
+        headerBadgeText: {
+            color: 'white',
+            fontSize: 10,
+            fontWeight: '700',
         },
 
         // Tab Bar Styles
@@ -292,22 +305,19 @@ function getStyles(theme) {
         },
         tabBarGradient: {
             backgroundColor: theme.colors.background,
-            // borderRadius: 25,
-            // borderWidth: 1,
             borderTopWidth: 1,
             borderTopColor: theme.colors.secondary,
-
         },
         tabBar: {
             flexDirection: 'row',
-            paddingVertical: 2,
+            paddingVertical: 6,
             paddingHorizontal: 8,
         },
         tabButton: {
             flex: 1,
             alignItems: 'center',
             justifyContent: 'center',
-            paddingVertical: 8,
+            paddingVertical: 6,
             position: 'relative',
         },
         activeIndicator: {
@@ -333,8 +343,8 @@ function getStyles(theme) {
             backgroundColor: 'transparent',
         },
         iconContainerActive: {
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-            transform: [{ scale: 1.1 }],
+            backgroundColor: 'rgba(102, 126, 234, 0.08)',
+            transform: [{ scale: 1.05 }],
         },
         tabLabel: {
             fontSize: 11,
@@ -344,6 +354,26 @@ function getStyles(theme) {
         },
         tabLabelActive: {
             color: '#667eea',
+            fontWeight: '700',
+        },
+
+        // small badge on tab icon
+        badge: {
+            position: 'absolute',
+            top: -6,
+            right: -6,
+            backgroundColor: '#FF3B30',
+            minWidth: 18,
+            height: 18,
+            borderRadius: 9,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 4,
+            elevation: 6,
+        },
+        badgeText: {
+            color: 'white',
+            fontSize: 10,
             fontWeight: '700',
         },
     });

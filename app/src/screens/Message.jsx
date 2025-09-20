@@ -3,52 +3,67 @@ import { Modal, Animated, Easing, FlatList, InputAccessoryView, Keyboard, Platfo
 import Thumbnail from "../common/Thumbnail"
 import ShowImage from "../common/ShowImage"
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome"
 import useGlobal from "../core/global"
 import { useTheme } from "react-native-paper";
 import { LinearGradient } from 'expo-linear-gradient';
 import { ADDRESS } from "../core/api";
 import { faTimes, faFile, faPaperPlane, faImage } from "@fortawesome/free-solid-svg-icons";
+import utils from "../core/utils"
+
+
 
 function MessageHeader({ friend }) {
 	const user = useGlobal(state => state.user);
 	const userStatuses = useGlobal(state => state.userStatuses);
 	const status = userStatuses[friend.username];
-	console.log('Status of', friend.username, status);
-	console.log('UserStatuses:', userStatuses);
 	const theme = useTheme();
-	return (
-		<View style={{
-			flexDirection: 'row',
-			alignItems: 'center',
-			paddingHorizontal: 8,
 
-		}}>
-			<View style={{
-				shadowColor: '#000',
-				shadowOffset: { width: 0, height: 1 },
-				shadowOpacity: 0.2,
-				shadowRadius: 2,
-				elevation: 2,
-			}}>
-				<Thumbnail url={friend.thumbnail} size={36} />
+	return (
+		<View
+			style={{
+				flexDirection: "row",
+				alignItems: "center",
+				paddingHorizontal: 12,
+				paddingVertical: 8,
+			}}
+		>
+			{/* Avatar */}
+			<View
+				style={{
+					shadowColor: "#000",
+					shadowOffset: { width: 0, height: 1 },
+					shadowOpacity: 0.2,
+					shadowRadius: 2,
+					elevation: 2,
+				}}
+			>
+				<Thumbnail url={friend.thumbnail} size={40} />
 			</View>
-			<View style={{ marginLeft: 12 }}>
-				<Text style={{
-					color: theme.colors.title,
-					fontSize: 18,
-					fontWeight: '700',
-					letterSpacing: 0.3,
-				}}>
+
+			{/* Name + Status */}
+			<View style={{ marginLeft: 12, flexShrink: 1 }}>
+				<Text
+					style={{
+						color: theme.colors.title,
+						fontSize: 18,
+						fontWeight: "700",
+						letterSpacing: 0.3,
+					}}
+					numberOfLines={1}
+				>
 					{friend.name}
 				</Text>
+
 				<Text
 					style={{
 						color: theme.colors.text,
-						fontSize: 12,
-						fontWeight: '500',
-						marginTop: 1,
+						fontSize: 13,
+						fontWeight: "500",
+						marginTop: 2,
 					}}
+					numberOfLines={1}
 				>
 					{friend?.is_online
 						? "Online"
@@ -58,15 +73,16 @@ function MessageHeader({ friend }) {
 				</Text>
 			</View>
 		</View>
-	)
+	);
 }
+
+
 
 function MessageBubbleMe({ text, file, onFilePress, isSending }) {
 	const theme = useTheme();
-	const openFile = () => {
-		if (!file) return;
-		onFilePress(file);
-	};
+	const openFile = () => { if (!file) return; onFilePress(file); };
+
+	const imageUrl = isImageFile(file) ? utils.resolvePreviewUri(file) : null;
 
 	return (
 		<View style={{ flexDirection: 'row', padding: 8, paddingRight: 16 }}>
@@ -99,12 +115,9 @@ function MessageBubbleMe({ text, file, onFilePress, isSending }) {
 									opacity: 0.6,
 								}} />
 							</View>
-						) : file.endsWith('.jpg') || file.endsWith('.png') || file.endsWith('.jpeg') ? (
-							<View style={{
-								borderRadius: 12,
-								overflow: 'hidden',
-							}}>
-								<ShowImage url={file} size={200} />
+						) : imageUrl ? (
+							<View style={{ borderRadius: 12, overflow: 'hidden' }}>
+								<ShowImage url={imageUrl} size={200} />
 							</View>
 						) : (
 							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -138,6 +151,8 @@ function MessageBubbleMe({ text, file, onFilePress, isSending }) {
 		</View>
 	);
 }
+
+
 
 function MessageTypingAnimation({ offset }) {
 	const y = useRef(new Animated.Value(0)).current
@@ -188,10 +203,8 @@ function MessageTypingAnimation({ offset }) {
 }
 
 function MessageBubbleFriend({ text = '', friend, typing = false, file, onFilePress }) {
-	const openFile = () => {
-		if (!file) return;
-		onFilePress(file);
-	};
+	const openFile = () => { if (!file) return; onFilePress(file); };
+	const imageUrl = isImageFile(file) ? utils.resolvePreviewUri(file) : null;
 
 	return (
 		<View style={{ flexDirection: 'row', padding: 8, paddingLeft: 16 }}>
@@ -227,12 +240,9 @@ function MessageBubbleFriend({ text = '', friend, typing = false, file, onFilePr
 					</View>
 				) : file ? (
 					<TouchableOpacity onPress={openFile} activeOpacity={0.8}>
-						{file.endsWith('.jpg') || file.endsWith('.png') || file.endsWith('.jpeg') ? (
-							<View style={{
-								borderRadius: 12,
-								overflow: 'hidden',
-							}}>
-								<ShowImage url={file} size={200} />
+						{imageUrl ? (
+							<View style={{ borderRadius: 12, overflow: 'hidden' }}>
+								<ShowImage url={imageUrl} size={200} />
 							</View>
 						) : (
 							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -257,64 +267,35 @@ function MessageBubbleFriend({ text = '', friend, typing = false, file, onFilePr
 }
 
 const ImageVideoModal = ({ visible, mediaUrl, onClose }) => {
+	if (!mediaUrl) return null;
+	const isRemote = typeof mediaUrl === 'string' && (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://') || mediaUrl.startsWith('file://') || mediaUrl.startsWith('data:'));
+	const source = isRemote ? { uri: mediaUrl } : (mediaUrl.startsWith('/') ? { uri: 'http://' + ADDRESS + mediaUrl } : { uri: mediaUrl });
+
 	return (
-		<Modal
-			transparent={true}
-			visible={visible}
-			animationType="fade"
-			onRequestClose={onClose}
-		>
-			<View style={{
-				flex: 1,
-				justifyContent: 'center',
-				alignItems: 'center',
-				backgroundColor: 'rgba(0, 0, 0, 0.9)',
-			}}>
-				<TouchableOpacity
-					style={{
-						position: 'absolute',
-						top: 60,
-						right: 20,
-						width: 44,
-						height: 44,
-						borderRadius: 22,
-						backgroundColor: 'rgba(0, 0, 0, 0.5)',
-						alignItems: 'center',
-						justifyContent: 'center',
-						zIndex: 1000,
-					}}
-					onPress={onClose}
-				>
+		<Modal transparent={true} visible={visible} animationType="fade" onRequestClose={onClose}>
+			<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.9)' }}>
+				<TouchableOpacity style={{
+					position: 'absolute',
+					top: 60,
+					right: 20,
+					width: 44,
+					height: 44,
+					borderRadius: 22,
+					backgroundColor: 'rgba(0, 0, 0, 0.5)',
+					alignItems: 'center',
+					justifyContent: 'center',
+					zIndex: 1000,
+				}} onPress={onClose}>
 					<FontAwesomeIcon icon={faTimes} size={24} color="white" />
 				</TouchableOpacity>
 
-				<View style={{
-					backgroundColor: 'transparent',
-					borderRadius: 16,
-					overflow: 'hidden',
-					maxWidth: '90%',
-					maxHeight: '80%',
-				}}>
-					{mediaUrl.endsWith('.jpg') || mediaUrl.endsWith('.png') || mediaUrl.endsWith('.jpeg') ? (
-						<Image
-							source={{ uri: 'http://' + ADDRESS + mediaUrl }}
-							style={{
-								width: 350,
-								height: 350,
-								borderRadius: 16,
-							}}
-							resizeMode="cover"
-						/>
-					) : mediaUrl.endsWith('.mp4') || mediaUrl.endsWith('.mov') ? (
-						<Video
-							source={{ uri: mediaUrl }}
-							style={{
-								width: 350,
-								height: 350,
-								borderRadius: 16,
-							}}
-							resizeMode="contain"
-						/>
+				<View style={{ backgroundColor: 'transparent', borderRadius: 16, overflow: 'hidden', maxWidth: '90%', maxHeight: '80%' }}>
+					{isImageFile(mediaUrl) ? (
+						<Image source={source} style={{ width: 350, height: 350, borderRadius: 16 }} resizeMode="contain" />
+					) : (typeof mediaUrl === 'string' && (mediaUrl.endsWith('.mp4') || mediaUrl.endsWith('.mov'))) ? (
+						<View style={{ width: 350, height: 350, alignItems: 'center', justifyContent: 'center' }}>
+							<Text style={{ color: 'white' }}>Video playback</Text>
+						</View>
 					) : null}
 				</View>
 			</View>
@@ -356,7 +337,7 @@ function MessageBubble({ index, message, friend }) {
 			const now = new Date();
 			const ms = now - messagesTyping;
 			if (ms > 10000) {
-				setShowTyping(false);
+				setShow
 			}
 		}, 1000);
 		return () => clearInterval(check);
@@ -385,22 +366,44 @@ function MessageBubble({ index, message, friend }) {
 	);
 }
 
+function isImageFile(file) {
+	// Accept string urls, file objects or data URIs
+	if (!file) return false;
+	if (typeof file === 'object') {
+		const uri = file.uri || '';
+		return /\.(jpe?g|png|gif|webp|bmp)(\?.*)?$/i.test(uri) || (file.type && file.type.startsWith('image'));
+	}
+	if (typeof file === 'string') {
+		// data:image/...
+		if (file.startsWith('data:image')) return true;
+		return /\.(jpe?g|png|gif|webp|bmp)(\?.*)?$/i.test(file);
+	}
+	return false;
+}
+
+
+
+
+
 function MessageInput({ message, setMessage, onSend, onFileSend }) {
 	const theme = useTheme();
 
 	const selectFile = async () => {
 		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-		if (status !== 'granted') {
-			alert('Permission to access media library is required!');
+
+		if (status !== "granted") {
+			alert("Permission to access media library is required!");
 			return;
 		}
 
-		let result = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ImagePicker.MediaTypeOptions.All,
+		const result = await ImagePicker.launchImageLibraryAsync({
+			mediaTypes: ImagePicker.MediaTypeOptions.All, // ✅ correct for expo
 			allowsEditing: false,
 			quality: 1,
-			base64: true,
+			base64: false,
 		});
+
+		console.log("Picker result:", result);
 
 		if (result.canceled) {
 			return;
@@ -408,15 +411,40 @@ function MessageInput({ message, setMessage, onSend, onFileSend }) {
 
 		if (result.assets && result.assets.length > 0) {
 			const asset = result.assets[0];
-			const file = {
-				name: asset.fileName || asset.uri.split('/').pop(),
-				type: asset.type || 'image',
-				data: asset.base64 || null,
-				uri: asset.uri,
-			};
-			onFileSend(file);
+
+			try {
+				const manipResult = await ImageManipulator.manipulateAsync(
+					asset.uri,
+					[{ resize: { width: Math.min(asset.width || 1024, 1024) } }],
+					{
+						compress: 0.75,
+						format: ImageManipulator.SaveFormat.JPEG,
+						base64: true,
+					}
+				);
+
+				const fileName = asset.fileName || asset.uri.split("/").pop();
+				const file = {
+					name: fileName,
+					type: "image/jpeg",
+					data: manipResult.base64 || null,
+					uri: manipResult.uri,
+				};
+				onFileSend(file);
+			} catch (err) {
+				const fileName = asset.fileName || asset.uri.split("/").pop();
+				const file = {
+					name: fileName,
+					type: asset.type || "image",
+					data: null,
+					uri: asset.uri,
+				};
+				onFileSend(file);
+			}
 		}
 	};
+
+
 
 	const canSend = message.trim().length > 0;
 
@@ -447,7 +475,7 @@ function MessageInput({ message, setMessage, onSend, onFileSend }) {
 					marginRight: 12,
 				}}
 			>
-				<FontAwesomeIcon icon={faImage} size={18} color="#007AFF" />
+				<FontAwesomeIcon icon={faImage} size={18} color={theme.colors.primary} />
 			</TouchableOpacity>
 
 			<View style={{
@@ -506,6 +534,10 @@ function MessageInput({ message, setMessage, onSend, onFileSend }) {
 	);
 }
 
+
+
+
+
 function MessagesScreen({ navigation, route }) {
 	const theme = useTheme();
 	const [message, setMessage] = useState('')
@@ -522,21 +554,14 @@ function MessagesScreen({ navigation, route }) {
 	useLayoutEffect(() => {
 		navigation.setOptions({
 			headerTitle: () => <MessageHeader friend={friend} />,
-			headerStyle: {
-				backgroundColor: theme.colors.background,
-			},
-			headerBackground: () => (
-				<LinearGradient
-					colors={[theme.colors.background, theme.colors.background]}
-					style={{ flex: 1 }}
-				/>
-			),
+			headerStyle: { backgroundColor: theme.colors.level3 },
 		})
-	}, [])
+	}, [navigation, friend, theme]);
 
 	useEffect(() => {
-		messageList(connectionId)
-	}, [])
+		// load first page
+		if (connectionId) messageList(connectionId);
+	}, [connectionId, messageList]);
 
 	function onSend() {
 		const cleaned = message.replace(/\s+/g, ' ').trim()
@@ -547,6 +572,7 @@ function MessagesScreen({ navigation, route }) {
 
 	function onFileSend(file) {
 		if (!file) return;
+		// send resized file object (contains uri and smaller base64)
 		messageSend(connectionId, { file });
 		setMessage('')
 	}
@@ -557,52 +583,27 @@ function MessagesScreen({ navigation, route }) {
 	}
 
 	return (
-		<LinearGradient
-			colors={[theme.colors.background, theme.colors.background]}
-			style={{ flex: 1 }}
-		>
+		<LinearGradient colors={[theme.colors.background, theme.colors.background]} style={{ flex: 1 }}>
 			<SafeAreaView style={{ flex: 1 }}>
-				<View style={{
-					flex: 1,
-					marginBottom: Platform.OS === 'ios' ? 0 : 0
-				}}>
+				<View style={{ flex: 1, marginBottom: Platform.OS === 'ios' ? 0 : 0 }}>
 					<FlatList
 						automaticallyAdjustKeyboardInsets={true}
-						contentContainerStyle={{
-							paddingTop: 20,
-							paddingBottom: 20,
-						}}
-						data={messagesList.filter(item => item.id !== -1)}
+						contentContainerStyle={{ paddingTop: 20, paddingBottom: 20 }}
+						data={messagesList ? messagesList.filter(item => item.id !== -1) : []}
 						inverted={true}
-						keyExtractor={item => item.id}
-						onEndReached={() => {
-							if (messagesNext) {
-								messageList(connectionId, messagesNext);
-							}
-						}}
-						renderItem={({ item, index }) => (
-							<MessageBubble index={index} message={item} friend={friend} />
-						)}
+						keyExtractor={item => String(item.id)} // ensure string key
+						onEndReached={() => { if (messagesNext) { messageList(connectionId, messagesNext); } }}
+						renderItem={({ item, index }) => (<MessageBubble index={index} message={item} friend={friend} />)}
 						showsVerticalScrollIndicator={false}
 					/>
 				</View>
 
 				{Platform.OS === 'ios' ? (
 					<InputAccessoryView>
-						<MessageInput
-							message={message}
-							setMessage={onType}
-							onSend={onSend}
-							onFileSend={onFileSend}
-						/>
+						<MessageInput message={message} setMessage={onType} onSend={onSend} onFileSend={onFileSend} />
 					</InputAccessoryView>
 				) : (
-					<MessageInput
-						message={message}
-						setMessage={onType}
-						onSend={onSend}
-						onFileSend={onFileSend}
-					/>
+					<MessageInput message={message} setMessage={onType} onSend={onSend} onFileSend={onFileSend} />
 				)}
 			</SafeAreaView>
 		</LinearGradient>

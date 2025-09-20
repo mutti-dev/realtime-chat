@@ -17,7 +17,15 @@ class User(AbstractUser):
 		blank=True
 	)
 	is_online = models.BooleanField(default=False)
-	last_online = models.DateTimeField(auto_now=True)
+	# make last_online nullable and controllable (was auto_now=True)
+	last_online = models.DateTimeField(null=True, blank=True)
+	is_admin = models.BooleanField(default=False)
+
+	# User preference fields
+	theme = models.CharField(max_length=10, choices=(('light','Light'),('dark','Dark')), null=True, blank=True)
+	notifications_enabled = models.BooleanField(default=True)
+	# Generic place to store additional settings if needed
+	settings = models.JSONField(null=True, blank=True)
 
 
 class Connection(models.Model):
@@ -52,7 +60,8 @@ class Message(models.Model):
 		related_name='my_messages',
 		on_delete=models.CASCADE
 	)
-	text = models.TextField()
+	# allow messages that only contain a file (text optional)
+	text = models.TextField(blank=True, default='')
 	created = models.DateTimeField(auto_now_add=True)
 	file = models.FileField(upload_to='messages/files/', blank=True, null=True)
 	is_ai = models.BooleanField(default=False) 

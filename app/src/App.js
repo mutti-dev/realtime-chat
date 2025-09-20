@@ -37,15 +37,10 @@ const Stack = createNativeStackNavigator();
 
 function App() {
   const colorScheme = useColorScheme();
-
-  // Read themeMode from global store (null = follow system)
-  const themeMode = useGlobal((state) => state.themeMode);
-  const user = useGlobal((state) => state.user);
-  console.log("Current user in App.js:", user);
-
-  // Decide theme: explicit user choice overrides system
-  const theme = themeMode
-    ? themeMode === "dark"
+  const globalTheme = useGlobal((state) => state.themeMode); // <-- read from global
+  // If user has explicitly set a theme, use it; otherwise fall back to system
+  const theme = globalTheme
+    ? globalTheme === "dark"
       ? DarkTheme
       : LightTheme
     : colorScheme === "dark"
@@ -63,29 +58,35 @@ function App() {
 
   return (
     <PaperProvider theme={theme}>
-      <NavigationContainer theme={theme}>
-        <StatusBar barStyle="transparent" />
-        <Stack.Navigator>
-          {!initialized ? (
-            <>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <NavigationContainer theme={theme}>
+          <StatusBar
+            barStyle={theme.dark ? "light-content" : "dark-content"}
+            backgroundColor="transparent"
+          />
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {!initialized ? (
+              // Show splash screen while initializing
               <Stack.Screen name="Splash" component={SplashScreen} />
-            </>
-          ) : !authenticated ? (
-            <>
-              <Stack.Screen name="SignIn" component={SignInScreen} />
-              <Stack.Screen name="SignUp" component={SignUpScreen} />
-            </>
-          ) : (
-            <>
-              <Stack.Screen name="Home" component={HomeScreen} />
-              <Stack.Screen name="Search" component={SearchScreen} />
-              <Stack.Screen name="Messages" component={MessagesScreen} />
-              <Stack.Screen name="Notifications" component={RequestsScreen} />
-              <Stack.Screen name="AiChat" component={AIChatScreen} />
-            </>
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
+            ) : !authenticated ? (
+
+              <>
+                <Stack.Screen name="SignIn" component={SignInScreen} />
+                <Stack.Screen name="SignUp" component={SignUpScreen} />
+              </>
+            ) : (
+
+              <>
+                <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen name="Search" component={SearchScreen} />
+                <Stack.Screen name="Messages" component={MessagesScreen} />
+                <Stack.Screen name="AIChat" component={AIChatScreen} />
+                <Stack.Screen name="Requests" component={RequestsScreen} />
+              </>
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaView>
     </PaperProvider>
   );
 }

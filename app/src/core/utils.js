@@ -26,8 +26,26 @@ function thumbnail(url) {
 
 function image(url) {
 	if (!url) {
-		return
+		return ProfileImage
 	}
+	// If url is already an object with uri (e.g. { uri }) return as-is
+	if (typeof url === 'object') {
+		if (url.uri) return { uri: url.uri }
+		// if object contains base64/data
+		if (url.base64) return { uri: `data:image/jpeg;base64,${url.base64}` }
+		if (url.data && typeof url.data === 'string' && url.data.startsWith('data:')) return { uri: url.data }
+		// fallback to profile image
+		return ProfileImage
+	}
+	// url is a string
+	if (typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('file://') || url.startsWith('data:'))) {
+		return { uri: url }
+	}
+	// Server absolute path e.g. /media/...
+	if (typeof url === 'string' && url.startsWith('/')) {
+		return { uri: 'http://' + ADDRESS + url }
+	}
+	// fallback to https prefix
 	return {
 		uri: 'https://' + ADDRESS + url
 	}
@@ -69,4 +87,28 @@ function formatTime(date) {
 	return `${y}y ago`
 }
 
-export default { log, thumbnail, formatTime, image }
+
+function resolvePreviewUri(file) {
+	// Return a uri suitable for Image source
+	if (!file) return null;
+	if (typeof file === 'object') {
+		if (file.uri) return file.uri;
+		if (file.data && file.data.startsWith('/')) return 'https://' + ADDRESS + file.data;
+		if (file.data && file.data.startsWith('data:image')) return file.data;
+		return null;
+	}
+	// string
+	if (file.startsWith('http://') || file.startsWith('https://') || file.startsWith('file://') || file.startsWith('data:')) {
+		return file;
+	}
+	// server media path like "/media/..."
+	if (file.startsWith('/')) {
+		return 'https://' + ADDRESS + file;
+	}
+	return file;
+}
+
+
+
+
+export default { log, thumbnail, formatTime, image, resolvePreviewUri }

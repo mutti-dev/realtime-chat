@@ -1,26 +1,18 @@
 import { Image } from "react-native"
 import utils from "../core/utils"
 
-function ShowImage({ url, size }) {
+function ShowImage({ url, size = 200 }) {
 	return (
 		<Image 
 			source={utils.image(url)}
 			style={{ 
 				width: size, 
-				height: size*0.5, 
-				marginLeft: 100,
-				marginBottom: 50,
-				marginTop: 0,
-				// padding: 10,
-				//
-				alignContent: 'center',
-				alignItems: 'center',
-				justifyContent: 'center',
-				
-				// borderRadius: 20,
-				// backgroundColor: '#e0e0e0', 
-				
+				height: size, 
+				borderRadius: 12,
+				overflow: 'hidden',
+				backgroundColor: '#e9e9ea',
 			}}
+			resizeMode="cover"
 		/>
 	)
 }
