@@ -13,6 +13,8 @@ import { useTheme } from "react-native-paper";
 import SettingsScreen from './Settings';
 
 
+
+
 const Tab = createBottomTabNavigator();
 const { width } = Dimensions.get('window');
 
@@ -116,7 +118,7 @@ function CustomHeader({ navigation, route }) {
 
     const getHeaderTitle = useCallback(() => {
         switch (route.name) {
-            case 'Friends': return 'Messages';
+            case 'Friends': return 'Chats';
             case 'Requests': return 'Requests';
             case 'Profile': return 'Profile';
             case 'Settings': return 'Settings';
@@ -134,22 +136,22 @@ function CustomHeader({ navigation, route }) {
             style={styles.headerContainer}
         >
 
-                <View style={styles.headerContent}>
-                    <View style={styles.headerLeft}>
-                        <View style={styles.avatarContainer}>
-                            <Thumbnail url={user.thumbnail} size={36} />
-                        </View>
-                        <View style={styles.headerTitleContainer}>
-                            <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
-                            <Text style={styles.headerSubtitle}>Stay connected</Text>
-                        </View>
+            <View style={styles.headerContent}>
+                <View style={styles.headerLeft}>
+                    <View style={styles.avatarContainer}>
+                        <Thumbnail url={user.thumbnail} size={36} />
                     </View>
+                    <View style={styles.headerTitleContainer}>
+                        <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
+                        <Text style={styles.headerSubtitle}>Stay connected</Text>
+                    </View>
+                </View>
 
-                    <TouchableOpacity onPress={onSearch} style={styles.iconAction} activeOpacity={0.7}>
-                        <FontAwesomeIcon icon='magnifying-glass' size={18} color={theme.colors.title} />
-                    </TouchableOpacity>
+                <TouchableOpacity onPress={onSearch} style={styles.iconAction} activeOpacity={0.7}>
+                    <FontAwesomeIcon icon='magnifying-glass' size={18} color={theme.colors.title} />
+                </TouchableOpacity>
 
-                    {/* <TouchableOpacity onPress={onGoRequests} style={styles.iconAction} activeOpacity={0.7}>
+                {/* <TouchableOpacity onPress={onGoRequests} style={styles.iconAction} activeOpacity={0.7}>
                         <FontAwesomeIcon icon='bell' size={18} color={theme.colors.title} />
                         {pendingCount > 0 && (
                             <View style={styles.headerBadge}>
@@ -157,12 +159,12 @@ function CustomHeader({ navigation, route }) {
                             </View>
                         )}
                     </TouchableOpacity> */}
-                    {/* {user?.is_superuser && (<TouchableOpacity onPress={onGoSettings} style={styles.iconAction} activeOpacity={0.7}>
+                {/* {user?.is_superuser && (<TouchableOpacity onPress={onGoSettings} style={styles.iconAction} activeOpacity={0.7}>
                         <FontAwesomeIcon icon='cog' size={18} color={theme.colors.title} />
                     </TouchableOpacity>)} */}
 
 
-                </View>
+            </View>
 
         </LinearGradient>
     );
@@ -203,6 +205,8 @@ function HomeScreen({ navigation }) {
             <Tab.Screen name="Settings"
                 component={SettingsScreen}
             />
+            
+
 
 
 

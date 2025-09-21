@@ -192,7 +192,7 @@ function responseAI(set, get, data) {
 }
 
 function responseUserStatus(set, get, data) {
-  console.log("responseUserStatus got:", data);
+  // console.log("responseUserStatus got:", data);
   const userStatuses = { ...get().userStatuses };
   userStatuses[data.username] = {
     is_online: data.is_online,
@@ -597,9 +597,12 @@ toggleNotifications: () => {
               ? response.data.notifications_enabled
               : null,
         }));
+        return response.data; // <-- return updated user for caller
       }
+      return null;
     } catch (err) {
       utils.log("updateUser error", err);
+      throw err; // allow UI to catch and show error
     }
   },
 

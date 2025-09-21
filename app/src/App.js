@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { SafeAreaView, StatusBar, Text } from "react-native";
 
+
 import "./src/core/fontawesome";
 
 import { NavigationContainer } from "@react-navigation/native";
@@ -22,6 +23,7 @@ import { DarkScheme } from "./src/theme/DarkScheme";
 import { PaperProvider } from "react-native-paper";
 import AIChatScreen from "./src/screens/AIChat";
 import RequestsScreen from "./src/screens/Requests";
+import FriendProfile from "./src/screens/FriendProfile";
 
 const LightTheme = {
   ...MD3LightTheme,

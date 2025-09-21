@@ -1,5 +1,7 @@
 # realtime-chat — developer notes
 
+# To run ngrok   ngrok http --domain=equal-useful-buck.ngrok-free.app 8000
+
 This README contains quick instructions on how to change the codebase, what to watch out for, and common commands for local development.
 
 Summary

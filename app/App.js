@@ -22,6 +22,7 @@ import { DarkScheme } from "./src/theme/DarkScheme";
 import { PaperProvider } from "react-native-paper";
 import AIChatScreen from "./src/screens/AIChat";
 import RequestsScreen from "./src/screens/Requests";
+import FriendProfile from "./src/screens/FriendProfile";
 
 const LightTheme = {
   ...MD3LightTheme,
@@ -41,7 +42,7 @@ function App() {
   // Read themeMode from global store (null = follow system)
   const themeMode = useGlobal((state) => state.themeMode);
   const user = useGlobal((state) => state.user);
-  console.log("Current user in App.js:", user);
+
 
   // Decide theme: explicit user choice overrides system
   const theme = themeMode
@@ -80,6 +81,12 @@ function App() {
               <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="Search" component={SearchScreen} />
               <Stack.Screen name="Messages" component={MessagesScreen} />
+              <Stack.Screen
+                name="FriendProfile"
+                component={FriendProfile}
+                options={{ headerShown: false }}
+              />
+
               <Stack.Screen name="Notifications" component={RequestsScreen} />
               <Stack.Screen name="AiChat" component={AIChatScreen} />
             </>

@@ -48,6 +48,7 @@ function FriendRow({ navigation, item }) {
 
 function FriendsScreen({ navigation }) {
 	const friendList = useGlobal((state) => state.friendList);
+
 	const [searchQuery, setSearchQuery] = useState("");
 	const theme = useTheme();
 	const styles = getStyles(theme);
@@ -73,9 +74,7 @@ function FriendsScreen({ navigation }) {
 	if (filteredFriends.length === 0 && searchQuery) {
 		return (
 			<SafeAreaView style={styles.container}>
-				<View style={styles.header}>
-					<Text style={styles.headerTitle}>Chats</Text>
-				</View>
+				
 
 				<View style={styles.searchContainer}>
 					<View style={styles.searchInputContainer}>
@@ -102,9 +101,7 @@ function FriendsScreen({ navigation }) {
 
 	return (
 		<SafeAreaView style={styles.container}>
-			<View style={styles.header}>
-				<Text style={styles.headerTitle}>Chats</Text>
-			</View>
+			
 
 			<View style={styles.searchContainer}>
 				<View style={styles.searchInputContainer}>
@@ -173,6 +170,7 @@ function getStyles(theme) {
 			letterSpacing: -0.5,
 		},
 		searchContainer: {
+			marginTop: 30,
 			paddingHorizontal: 20,
 			paddingBottom: 16,
 		},

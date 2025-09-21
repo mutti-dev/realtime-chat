@@ -160,7 +160,7 @@ class AskAPIView(APIView):
 
 
 class ProfileAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         """
@@ -172,11 +172,21 @@ class ProfileAPIView(APIView):
           { "first_name": "...", "password": "...", "settings": {...}, "theme": "dark" }
         """
         user = request.user
+        
+        if not user or not user.is_authenticated:
+            return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
 
         # Parse incoming data via serializer for validation (works for both form and json)
         serializer = ProfileUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+
+        # Support a single "name" field from client and split into first/last if provided
+        name = request.data.get("name")
+        if name and "first_name" not in data and "last_name" not in data:
+            parts = name.strip().split(" ", 1)
+            data["first_name"] = parts[0]
+            data["last_name"] = parts[1] if len(parts) > 1 else ""
 
         try:
             with transaction.atomic():

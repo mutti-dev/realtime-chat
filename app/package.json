@@ -37,6 +37,7 @@
     "react-native-safe-area-context": "^4.14.1",
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
+    "react-native-vector-icons": "^10.3.0",
     "react-native-web": "^0.20.0",
     "rn-wave-bottom-bar": "^2.2.36",
     "zustand": "^5.0.8"

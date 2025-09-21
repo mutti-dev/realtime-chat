@@ -11,36 +11,43 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ADDRESS } from "../core/api";
 import { faTimes, faFile, faPaperPlane, faImage } from "@fortawesome/free-solid-svg-icons";
 import utils from "../core/utils"
+import { useNavigation } from '@react-navigation/native';
+
+
 
 
 
 function MessageHeader({ friend }) {
-	const user = useGlobal(state => state.user);
 	const userStatuses = useGlobal(state => state.userStatuses);
-	const status = userStatuses[friend.username];
 	const theme = useTheme();
+	const navigation = useNavigation();
 
 	return (
 		<View
 			style={{
 				flexDirection: "row",
 				alignItems: "center",
-				paddingHorizontal: 12,
+				paddingHorizontal: 0,
 				paddingVertical: 8,
 			}}
 		>
-			{/* Avatar */}
-			<View
-				style={{
-					shadowColor: "#000",
-					shadowOffset: { width: 0, height: 1 },
-					shadowOpacity: 0.2,
-					shadowRadius: 2,
-					elevation: 2,
-				}}
+			{/* navigate to Profile screen (avoid navigating to missing FriendProfile) */}
+			<TouchableOpacity
+				onPress={() => navigation.navigate("FriendProfile", { details: friend })}
+				activeOpacity={0.7}
 			>
-				<Thumbnail url={friend.thumbnail} size={40} />
-			</View>
+				<View
+					style={{
+						shadowColor: "#000",
+						shadowOffset: { width: 0, height: 1 },
+						shadowOpacity: 0.2,
+						shadowRadius: 2,
+						elevation: 2,
+					}}
+				>
+					<Thumbnail url={friend.thumbnail} size={40} />
+				</View>
+			</TouchableOpacity>
 
 			{/* Name + Status */}
 			<View style={{ marginLeft: 12, flexShrink: 1 }}>
@@ -337,7 +344,7 @@ function MessageBubble({ index, message, friend }) {
 			const now = new Date();
 			const ms = now - messagesTyping;
 			if (ms > 10000) {
-				setShow
+				setShowTyping(false)
 			}
 		}, 1000);
 		return () => clearInterval(check);

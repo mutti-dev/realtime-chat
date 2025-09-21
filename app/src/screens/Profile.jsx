@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome"
-import { useLayoutEffect, useState } from "react"
-import { View, Text, Image, TouchableOpacity, ScrollView, Animated } from "react-native"
+import { useLayoutEffect, useState, useEffect } from "react"
+import { View, Text, Image, TouchableOpacity, ScrollView, Animated, Alert } from "react-native"
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
@@ -10,6 +10,9 @@ import Thumbnail from "../common/Thumbnail"
 import { useTheme } from "react-native-paper";
 import CustomLoader from "../common/CustomLoader"
 import { LinearGradient } from 'expo-linear-gradient';
+import Input from "../common/Input";
+import Button from "../common/Button"; // assume you have a simple Button component, otherwise TouchableOpacity below
+
 
 function ProfileImage() {
 	const theme = useTheme();
@@ -34,7 +37,7 @@ function ProfileImage() {
 				}
 
 				const result = await ImagePicker.launchImageLibraryAsync({
-					mediaTypes: ImagePicker.MediaType.Images,
+					mediaTypes: ImagePicker.MediaTypeOptions.All,
 					allowsEditing: true,
 					quality: 1,
 					base64: false, // avoid huge base64 from picker
@@ -124,8 +127,10 @@ function ProfileImage() {
 }
 
 function ProfileStats() {
+
 	const user = useGlobal(state => state.user)
 	const theme = useTheme();
+	const friendList = useGlobal((state) => state.friendList);
 
 	return (
 		<View style={{
@@ -133,7 +138,7 @@ function ProfileStats() {
 			backgroundColor: theme.colors.level3,
 			borderRadius: 20,
 			padding: 20,
-			marginHorizontal: 32,
+			marginHorizontal: 100,
 			marginBottom: 32,
 			borderWidth: 1,
 			borderColor: theme.colors.border,
@@ -145,159 +150,81 @@ function ProfileStats() {
 					color: theme.colors.title,
 					marginBottom: 4,
 				}}>
-					42
+					{friendList?.length || "loading..."}
 				</Text>
 				<Text style={{
 					fontSize: 14,
 					fontWeight: '500',
 					color: theme.colors.text,
 				}}>
-					Friends
+					Total Chats
 				</Text>
 			</View>
-			<View style={{
-				width: 1,
-				backgroundColor: theme.colors.level3,
-				marginHorizontal: 16,
-			}} />
-			<View style={{ flex: 1, alignItems: 'center' }}>
-				<Text style={{
-					fontSize: 24,
-					fontWeight: '800',
-					color: theme.colors.title,
-					marginBottom: 4,
-				}}>
-					128
-				</Text>
-				<Text style={{
-					fontSize: 14,
-					fontWeight: '500',
-					color: theme.colors.text,
-				}}>
-					Messages
-				</Text>
-			</View>
+
+
 		</View>
 	)
 }
 
-function ProfileOptions() {
 
-	const navigation = useNavigation();
-	const theme = useTheme();
-	const options = [
-		{ icon: 'cog', label: 'Settings', action: () => { } },
-		{ icon: 'bell', label: 'Notifications', action: () => { navigation.navigate("Notifications") } },
-		{ icon: 'shield', label: 'Privacy', action: () => { } },
-		{ icon: 'question-circle', label: 'Help & Support', action: () => { } },
-	];
-
-	// hook gives access to navigation
-
-	return (
-		<View style={{
-			marginHorizontal: 32,
-			marginBottom: 32,
-		}}>
-			{options.map((option, index) => (
-				<TouchableOpacity
-					key={option.label}
-					onPress={option.action}
-					style={{
-						flexDirection: 'row',
-						alignItems: 'center',
-						backgroundColor: theme.colors.level3,
-						borderRadius: 16,
-						padding: 16,
-						marginBottom: 12,
-						borderWidth: 1,
-						borderColor: theme.colors.border,
-					}}
-					activeOpacity={0.7}
-				>
-					<View style={{
-						width: 40,
-						height: 40,
-						borderRadius: 20,
-						// backgroundColor: theme.colors.background,
-						alignItems: 'center',
-						justifyContent: 'center',
-						marginRight: 16,
-					}}>
-						<FontAwesomeIcon
-							icon={option.icon}
-							size={18}
-							color={theme.colors.title}
-						/>
-					</View>
-					<Text style={{
-						fontSize: 16,
-						fontWeight: '600',
-						color: theme.colors.text,
-						flex: 1,
-					}}>
-						{option.label}
-					</Text>
-					<FontAwesomeIcon
-						icon='chevron-right'
-						size={14}
-						color={theme.colors.primary}
-					/>
-				</TouchableOpacity>
-			))}
-		</View>
-	)
-}
-
-function ProfileLogout() {
-	const logout = useGlobal(state => state.logout)
-	const theme = useTheme();
-
-	return (
-		<View style={{ paddingHorizontal: 32 }}>
-			<TouchableOpacity
-				onPress={logout}
-				style={{
-					height: 56,
-					borderRadius: 28,
-					alignItems: 'center',
-					justifyContent: 'center',
-					marginBottom: 20,
-					borderWidth: 2,
-					borderColor: theme.colors.border,
-					backgroundColor: theme.colors.level3,
-				}}
-				activeOpacity={0.8}
-			>
-				<View style={{
-					flexDirection: 'row',
-					alignItems: 'center',
-				}}>
-					<FontAwesomeIcon
-						icon='right-from-bracket'
-						size={20}
-						color={theme.colors.text}
-						style={{ marginRight: 12 }}
-					/>
-					<Text style={{
-						fontWeight: '700',
-						color: theme.colors.text,
-						fontSize: 16,
-						letterSpacing: 0.5,
-					}}>
-						Sign Out
-					</Text>
-				</View>
-			</TouchableOpacity>
-		</View>
-	)
-}
 
 function ProfileScreen() {
 	const theme = useTheme();
 	const user = useGlobal(state => state.user);
+	const updateUser = useGlobal(state => state.updateUser);
 
+	// keep local editable fields in sync with global user
+	const [name, setName] = useState(user?.name || '');
+	const [password, setPassword] = useState('');
+	const [confirmPassword, setConfirmPassword] = useState('');
 	const [loading, setLoading] = useState(false);
+
+	// sync when user changes in store (e.g. after uploadThumbnail)
+	useEffect(() => {
+		setName(user?.name || '');
+	}, [user?.name]);
+
+	const onSave = async () => {
+		// Validate
+		if (password && password.length < 6) {
+			Alert.alert('Validation', 'Password must be at least 6 characters');
+			return;
+		}
+		if (password && password !== confirmPassword) {
+			Alert.alert('Validation', 'Passwords do not match');
+			return;
+		}
+
+		// Build payload - split name into first_name/last_name
+		const payload = {};
+		const newName = (name || '').trim();
+		if (newName !== (user?.name || '').trim()) {
+			const parts = newName.split(' ', 2);
+			payload.first_name = parts[0] || '';
+			payload.last_name = parts[1] || '';
+		}
+		if (password) {
+			payload.password = password;
+		}
+
+		if (Object.keys(payload).length === 0) {
+			Alert.alert('No changes', 'Nothing to update');
+			return;
+		}
+
+		setLoading(true);
+		try {
+			const updated = await updateUser(payload);
+			setPassword('');
+			setConfirmPassword('');
+			Alert.alert('Saved', 'Profile updated successfully');
+		} catch (err) {
+			console.log('update error', err);
+			Alert.alert('Error', 'Failed to update profile');
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	if (loading) {
 		return (
@@ -354,36 +281,48 @@ function ProfileScreen() {
 						}}>
 							@{user.username}
 						</Text>
-						{/* <View style={{
-							backgroundColor: 'rgba(255, 255, 255, 0.15)',
-							paddingHorizontal: 16,
-							paddingVertical: 8,
-							borderRadius: 20,
-							marginTop: 16,
-							borderWidth: 1,
-							borderColor: 'rgba(255, 255, 255, 0.2)',
-						}}>
 
-							<Text
-								style={{
-									color: theme.colors.text,
-									fontSize: 14,
-									fontWeight: '600',
-								}}
-							>
-								{user?.is_online
-									? "🟢 Online"
-									: user?.last_online
-										? `Last seen ${new Date(user.last_online).toLocaleString()}`
-										: "Offline"}
-							</Text>
-						</View> */}
 					</View>
+
+
 				</View>
 
 				<ProfileStats />
-				{/* <ProfileOptions /> */}
-				{/* <ProfileLogout /> */}
+
+				<View style={{ marginHorizontal: 20, marginTop: 8 }}>
+					<Input
+						title='Name'
+						value={name}
+						setValue={setName}
+					/>
+					<Input
+						title='New Password'
+						value={password}
+						setValue={setPassword}
+						secureTextEntry={true}
+					/>
+					<Input
+						title='Confirm Password'
+						value={confirmPassword}
+						setValue={setConfirmPassword}
+						secureTextEntry={true}
+					/>
+
+					<TouchableOpacity
+						onPress={onSave}
+						style={{
+							marginTop: 16,
+							backgroundColor: '#667eea',
+							paddingVertical: 14,
+							borderRadius: 12,
+							alignItems: 'center',
+						}}
+						activeOpacity={0.8}
+					>
+						<Text style={{ color: 'white', fontWeight: '700' }}>Save</Text>
+					</TouchableOpacity>
+				</View>
+
 			</ScrollView>
 		</LinearGradient>
 	)
