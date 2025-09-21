@@ -4,7 +4,9 @@ import Thumbnail from '../common/Thumbnail';
 import utils from '../core/utils';
 import { useTheme } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import Icon from "react-native-vector-icons/FontAwesome";
+import BackButton from '../common/BackButton';
+import { LinearGradient } from 'expo-linear-gradient'
+
 
 
 const { width } = Dimensions.get('window');
@@ -27,52 +29,59 @@ const FriendProfile = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
+
 
 
 
       {/* Gradient Header Background */}
       <View style={styles.headerBackground} />
 
+
+      <LinearGradient
+        colors={[theme.colors.background, theme.colors.primary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          width: '100%',
+          paddingTop: 40,
+          paddingBottom: 14,
+          borderBottomLeftRadius: 20,
+          borderBottomRightRadius: 20,
+
+        }}
+      >
+        <StatusBar barStyle="transparent" />
+        <BackButton color={theme.colors.text} size={24} style={{ marginLeft: 10 }} />
+        <View style={styles.avatarSection}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatarBorder}>
+              <Thumbnail
+                url={details.thumbnail}
+                size={120}
+                placeholder={details.name}
+              />
+            </View>
+          </View>
+
+          <View style={styles.profileInfo}>
+            <Text style={styles.name}>{details.name}</Text>
+            <Text style={styles.username}>@{details.username}</Text>
+
+            <View style={styles.statusContainer}>
+              <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]} />
+              <Text style={styles.statusText}>{getStatusText()}</Text>
+            </View>
+          </View>
+        </View>
+
+
+      </LinearGradient>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-
-            onPress={() => navigation.goBack()}
-
-          >
-
-            <Icon name="arrow-left" size={20} color={theme.colors.text} />
-
-          </TouchableOpacity>
-          <View style={styles.avatarSection}>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatarBorder}>
-                <Thumbnail
-                  url={details.thumbnail}
-                  size={120}
-                  placeholder={details.name}
-                />
-              </View>
-            </View>
-
-            <View style={styles.profileInfo}>
-              <Text style={styles.name}>{details.name}</Text>
-              <Text style={styles.username}>@{details.username}</Text>
-
-              <View style={styles.statusContainer}>
-                <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]} />
-                <Text style={styles.statusText}>{getStatusText()}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
         {/* Profile Details Card */}
         <View style={styles.detailsCard}>
           <View style={styles.cardHeader}>
@@ -168,8 +177,8 @@ function getStyles(theme) {
       top: 80,
       left: 0,
       right: 0,
-      height: 200,
-      backgroundColor: theme.colors.level3,
+      height: 100,
+
       opacity: 0.3,
     },
     navigationHeader: {
@@ -292,7 +301,8 @@ function getStyles(theme) {
     },
     detailsCard: {
       backgroundColor: theme.colors.level3,
-      marginHorizontal: 20,
+      top: 10,
+      marginHorizontal: 10,
       marginBottom: 20,
       borderRadius: 16,
       shadowColor: '#000',

@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
-import { SafeAreaView, Text, TouchableOpacity, View, StyleSheet, Dimensions } from "react-native";
+import { SafeAreaView, Text, TouchableOpacity, View, StyleSheet, Dimensions, Image } from "react-native";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,8 @@ import useGlobal from "../core/global";
 import Thumbnail from "../common/Thumbnail";
 import { useTheme } from "react-native-paper";
 import SettingsScreen from './Settings';
+import ShowImage from '../common/ShowImage';
+
 
 
 
@@ -109,9 +111,10 @@ function CustomTabBar({ state, descriptors, navigation }) {
     );
 }
 
+
+
 function CustomHeader({ navigation, route }) {
     const theme = useTheme();
-    const styles = getStyles(theme);
     const user = useGlobal(state => state.user);
     const requestList = useGlobal(state => state.requestList);
     const pendingCount = requestList ? requestList.length : 0;
@@ -131,42 +134,51 @@ function CustomHeader({ navigation, route }) {
     const onGoSettings = useCallback(() => navigation.navigate('Settings'), [navigation]);
 
     return (
-        <LinearGradient
-            colors={[styles.headerContainer.backgroundColor, styles.headerContainer.backgroundColor]}
-            style={styles.headerContainer}
-        >
-
-            <View style={styles.headerContent}>
-                <View style={styles.headerLeft}>
-                    <View style={styles.avatarContainer}>
-                        <Thumbnail url={user.thumbnail} size={36} />
-                    </View>
-                    <View style={styles.headerTitleContainer}>
-                        <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
-                        <Text style={styles.headerSubtitle}>Stay connected</Text>
+        <View style={{
+            backgroundColor: theme.colors.background,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+          
+        }}>
+            <View style={{
+                flexDirection: 'row',
+                alignItems: 'left',
+                justifyContent: 'space-between'
+            }}>
+              
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    {/* <Image
+                        source={require("../assets/icon.png")}
+                        style={{
+                            width: 80,
+                            height: 80,
+                            marginRight: 0
+                        }}
+                    /> */}
+                    <View>
+                        <Text style={{
+                            fontSize: 28,
+                            fontWeight: '600',
+                            color: theme.colors.title,
+                            padding: 8, 
+                            marginLeft: 8 
+                        }}>{getHeaderTitle()}</Text>
+                        
                     </View>
                 </View>
 
-                <TouchableOpacity onPress={onSearch} style={styles.iconAction} activeOpacity={0.7}>
-                    <FontAwesomeIcon icon='magnifying-glass' size={18} color={theme.colors.title} />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity
+                        onPress={onSearch}
+                        style={{ padding: 8, marginLeft: 8 }}
+                        activeOpacity={0.7}
+                    >
+                        <FontAwesomeIcon icon='magnifying-glass' size={20} color={theme.colors.title} />
+                    </TouchableOpacity>
 
-                {/* <TouchableOpacity onPress={onGoRequests} style={styles.iconAction} activeOpacity={0.7}>
-                        <FontAwesomeIcon icon='bell' size={18} color={theme.colors.title} />
-                        {pendingCount > 0 && (
-                            <View style={styles.headerBadge}>
-                                <Text style={styles.headerBadgeText}>{pendingCount > 99 ? '99+' : String(pendingCount)}</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity> */}
-                {/* {user?.is_superuser && (<TouchableOpacity onPress={onGoSettings} style={styles.iconAction} activeOpacity={0.7}>
-                        <FontAwesomeIcon icon='cog' size={18} color={theme.colors.title} />
-                    </TouchableOpacity>)} */}
-
-
+                </View>
             </View>
-
-        </LinearGradient>
+        </View>
     );
 }
 
@@ -205,7 +217,7 @@ function HomeScreen({ navigation }) {
             <Tab.Screen name="Settings"
                 component={SettingsScreen}
             />
-            
+
 
 
 
@@ -233,7 +245,7 @@ function getStyles(theme) {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingHorizontal: 16,
+            paddingHorizontal: 10,
             paddingVertical: 10,
         },
         headerLeft: {

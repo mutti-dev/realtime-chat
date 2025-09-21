@@ -79,7 +79,9 @@ function App() {
           ) : (
             <>
               <Stack.Screen name="Home" component={HomeScreen} />
-              <Stack.Screen name="Search" component={SearchScreen} />
+              <Stack.Screen name="Search" component={SearchScreen} 
+			  options={{ headerShown: false }}
+			  />
               <Stack.Screen name="Messages" component={MessagesScreen} />
               <Stack.Screen
                 name="FriendProfile"

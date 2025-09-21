@@ -18,6 +18,7 @@ function ProfileImage() {
 	const theme = useTheme();
 	const uploadThumbnail = useGlobal(state => state.uploadThumbnail)
 	const user = useGlobal(state => state.user)
+	const updateUser = useGlobal(state => state.updateUser);
 
 	return (
 		<TouchableOpacity
@@ -47,6 +48,7 @@ function ProfileImage() {
 
 				if (result.assets && result.assets.length > 0) {
 					const asset = result.assets[0];
+				
 					try {
 						// Resize/compress client-side to reduce payload & memory pressure
 						const manipResult = await ImageManipulator.manipulateAsync(
@@ -62,6 +64,7 @@ function ProfileImage() {
 							uri: manipResult.uri,
 						};
 						uploadThumbnail && uploadThumbnail(uploadFile);
+						// updateUser && updateUser(uploadFile);
 					} catch (err) {
 						// fallback: send original small payload if base64 unavailable
 						const uploadFile = {
@@ -71,6 +74,7 @@ function ProfileImage() {
 							uri: asset.uri,
 						};
 						uploadThumbnail && uploadThumbnail(uploadFile);
+						// updateUser && updateUser(uploadFile);
 					}
 				}
 			}}

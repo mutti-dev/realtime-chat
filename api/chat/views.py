@@ -171,6 +171,8 @@ class ProfileAPIView(APIView):
         Example JSON:
           { "first_name": "...", "password": "...", "settings": {...}, "theme": "dark" }
         """
+
+        print("Profile update request data:", request.data.get('thumbnail'))
         user = request.user
         
         if not user or not user.is_authenticated:

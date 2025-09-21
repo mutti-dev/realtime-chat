@@ -1,5 +1,5 @@
 export const DarkScheme = {
-  primary: '#0A84FF',          // Vibrant blue for primary actions/buttons
+  primary: '#8B5CF6',          // Vibrant blue for primary actions/buttons
   secondary: '#1C1C1E',        // Dark gray for backgrounds and cards
   tertiary: '#FF5C5C',         // Soft red for accents/warnings
   error: '#FF3B30',            // Bright red for errors

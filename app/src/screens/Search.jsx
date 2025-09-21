@@ -1,21 +1,24 @@
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome"
 import { useEffect, useState } from "react"
-import { 
+import {
 	FlatList,
-	SafeAreaView, 
-	Text, 
-	TextInput, 
-	TouchableOpacity, 
+	SafeAreaView,
+	Text,
+	TextInput,
+	TouchableOpacity,
 	View,
 	Animated,
 	Dimensions
 } from "react-native"
 import { LinearGradient } from 'expo-linear-gradient'
-
-import Empty from "../common/Empty"
+import Icon from "react-native-vector-icons/FontAwesome";
+import { useTheme } from "react-native-paper"
 import Thumbnail from "../common/Thumbnail"
 import useGlobal from "../core/global"
-import Cell from "../common/Cell"
+import { useNavigation } from "@react-navigation/native"
+import BackButton from "../common/BackButton";
+
+
 
 const { width } = Dimensions.get('window')
 
@@ -74,7 +77,7 @@ function SearchButton({ user }) {
 	}
 
 	const requestConnect = useGlobal(state => state.requestConnect)
-	
+
 	const data = {}
 
 	switch (user.status) {
@@ -88,21 +91,21 @@ function SearchButton({ user }) {
 		case 'pending-them':
 			data.text = 'Pending'
 			data.disabled = true
-			data.onPress = () => {}
+			data.onPress = () => { }
 			data.bgColor = '#9CA3AF'
 			data.shadowColor = '#9CA3AF'
 			break
 		case 'pending-me':
 			data.text = 'Accept'
 			data.disabled = false
-			data.onPress = () => {}
+			data.onPress = () => { }
 			data.bgColor = '#F59E0B'
 			data.shadowColor = '#F59E0B'
 			break
-		default: 
+		default:
 			data.text = 'Connect'
 			data.disabled = false
-			data.onPress = () => {}
+			data.onPress = () => { }
 			data.bgColor = '#6366F1'
 			data.shadowColor = '#6366F1'
 			break
@@ -201,7 +204,7 @@ function SearchRow({ user, index }) {
 						size={64}
 					/>
 				</View>
-				
+
 				<View
 					style={{
 						flex: 1,
@@ -228,7 +231,7 @@ function SearchRow({ user, index }) {
 						@{user.username}
 					</Text>
 				</View>
-				
+
 				<SearchButton user={user} />
 			</View>
 		</Animated.View>
@@ -238,19 +241,21 @@ function SearchRow({ user, index }) {
 function SearchScreen() {
 	const [query, setQuery] = useState('')
 	const [inputFocused, setInputFocused] = useState(false)
+	const navigation = useNavigation()
+	const theme = useTheme();
 
 	const searchList = useGlobal(state => state.searchList)
 	const searchUsers = useGlobal(state => state.searchUsers)
 
 	useEffect(() => {
 		searchUsers(query)
-	}, [query]) 
+	}, [query])
 
 	return (
-		<SafeAreaView style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-			{/* Modern Header with Gradient */}
+		<SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+			
 			<LinearGradient
-				colors={['#6366F1', '#8B5CF6']}
+				colors={[theme.colors.background, theme.colors.primary]}
 				start={{ x: 0, y: 0 }}
 				end={{ x: 1, y: 1 }}
 				style={{
@@ -258,6 +263,7 @@ function SearchScreen() {
 					paddingBottom: 24,
 				}}
 			>
+				<BackButton color={theme.colors.text} size={24} style={{ marginLeft: 10 }}/>
 				<Text
 					style={{
 						fontSize: 28,
@@ -269,8 +275,8 @@ function SearchScreen() {
 				>
 					Find Friends
 				</Text>
-				
-				{/* Modern Search Input */}
+
+
 				<View
 					style={{
 						backgroundColor: 'white',
@@ -291,7 +297,7 @@ function SearchScreen() {
 					<FontAwesomeIcon
 						icon='magnifying-glass'
 						size={20}
-						color={inputFocused ? '#6366F1' : '#9CA3AF'}
+						color={inputFocused ? theme.colors.primary : '#9CA3AF'}
 						style={{ marginRight: 12 }}
 					/>
 					<TextInput
@@ -312,7 +318,7 @@ function SearchScreen() {
 						<TouchableOpacity
 							onPress={() => setQuery('')}
 							style={{
-								backgroundColor: '#F3F4F6',
+								backgroundColor: theme.colors.background,
 								borderRadius: 12,
 								padding: 6
 							}}

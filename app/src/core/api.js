@@ -37,9 +37,7 @@ const api = axios.create({
     Platform.OS === "android" && !ADDRESS.startsWith("http")
       ? "https://" + ADDRESS
       : ADDRESS,
-  headers: {
-    "Content-Type": "application/json",
-  },
+
 });
 
 export default api;

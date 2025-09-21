@@ -163,10 +163,13 @@ function responseSearch(set, get, data) {
 }
 
 function responseThumbnail(set, get, data) {
-  set(state => ({
+  set((state) => ({
     user: data,
     themeMode: data?.theme || null,
-    notificationsEnabled: typeof data?.notifications_enabled !== 'undefined' ? data.notifications_enabled : state.notificationsEnabled,
+    notificationsEnabled:
+      typeof data?.notifications_enabled !== "undefined"
+        ? data.notifications_enabled
+        : state.notificationsEnabled,
   }));
 }
 
@@ -202,10 +205,13 @@ function responseUserStatus(set, get, data) {
 }
 
 function responseUserUpdate(set, get, data) {
-  set(state => ({
+  set((state) => ({
     user: data,
     themeMode: data?.theme || null,
-    notificationsEnabled: typeof data?.notifications_enabled !== 'undefined' ? data.notifications_enabled : state.notificationsEnabled,
+    notificationsEnabled:
+      typeof data?.notifications_enabled !== "undefined"
+        ? data.notifications_enabled
+        : state.notificationsEnabled,
   }));
 }
 
@@ -242,7 +248,10 @@ const useGlobal = create((set, get) => ({
           authenticated: true,
           user: user,
           themeMode: user?.theme || null,
-          notificationsEnabled: typeof user?.notifications_enabled !== 'undefined' ? user.notifications_enabled : null,
+          notificationsEnabled:
+            typeof user?.notifications_enabled !== "undefined"
+              ? user.notifications_enabled
+              : null,
         }));
         return;
       } catch (error) {
@@ -268,7 +277,10 @@ const useGlobal = create((set, get) => ({
       authenticated: true,
       user,
       themeMode: user.theme || null,
-      notificationsEnabled: typeof user?.notifications_enabled !== 'undefined' ? user.notifications_enabled : null,
+      notificationsEnabled:
+        typeof user?.notifications_enabled !== "undefined"
+          ? user.notifications_enabled
+          : null,
     }));
   },
 
@@ -291,27 +303,25 @@ const useGlobal = create((set, get) => ({
   notificationsEnabled: true,
 
   setThemeMode: (mode) => {
-  set({ themeMode: mode });
-  get().updateSettings({ theme: mode });
-},
+    set({ themeMode: mode });
+    get().updateSettings({ theme: mode });
+  },
 
-toggleTheme: () => {
-  set((state) => {
-    const next = state.themeMode === "dark" ? "light" : "dark";
-    get().updateSettings({ theme: next });
-    return { themeMode: next };
-  });
-},
+  toggleTheme: () => {
+    set((state) => {
+      const next = state.themeMode === "dark" ? "light" : "dark";
+      get().updateSettings({ theme: next });
+      return { themeMode: next };
+    });
+  },
 
-
-toggleNotifications: () => {
-  set((state) => {
-    const next = state.notificationsEnabled === true ? false : true;
-    get().updateSettings({ notifications: next });
-    return { notifications: next };
-  });
-},
-
+  toggleNotifications: () => {
+    set((state) => {
+      const next = state.notificationsEnabled === true ? false : true;
+      get().updateSettings({ notifications: next });
+      return { notifications: next };
+    });
+  },
 
   //---------------------
   //     Ollama
@@ -542,48 +552,67 @@ toggleNotifications: () => {
 
   uploadThumbnail: async (file) => {
     try {
-      const tokens = await secure.get('tokens');
+      const tokens = await secure.get("tokens");
       const authHeaders = tokens ? { Authorization: `Bearer ${tokens.access}` } : {};
 
-      const form = new FormData();
       const filename =
         file?.fileName ||
         file?.name ||
         (file?.uri ? file.uri.split("/").pop() : "thumbnail.jpg");
       const fileType = file?.type || "image/jpeg";
+
+      const form = new FormData();
       form.append("thumbnail", {
         uri: file.uri,
         name: filename,
         type: fileType,
       });
 
-      const response = await api.post("/chat/profile/", form, {
+      // Use fetch for multipart uploads on React Native to avoid axios content-type/adapter issues
+      const baseURL = (api && api.defaults && api.defaults.baseURL) ? api.defaults.baseURL : `https://${ADDRESS}`;
+      const url = baseURL.replace(/\/$/, "") + "/chat/profile/";
+
+      const resp = await fetch(url, {
+        method: "POST",
         headers: {
           ...authHeaders,
-          // let axios/set native networking layer set proper multipart boundary,
-          // avoid forcing Content-Type here in RN if using axios/fetch wrappers.
+          // Do NOT set Content-Type (fetch will set boundary for multipart/form-data)
         },
+        body: form,
       });
-      if (response && response.data) {
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => null);
+        const err = new Error(`upload failed: ${resp.status} ${resp.statusText} ${text || ""}`);
+        utils.log("uploadThumbnail fetch response error", err);
+        throw err;
+      }
+
+      const data = await resp.json().catch(() => null);
+      if (data) {
         set(() => ({
-          user: response.data,
-          themeMode: response.data?.theme || null,
+          user: data,
+          themeMode: data?.theme || null,
           notificationsEnabled:
-            typeof response.data?.notifications_enabled !== "undefined"
-              ? response.data.notifications_enabled
+            typeof data?.notifications_enabled !== "undefined"
+              ? data.notifications_enabled
               : null,
         }));
       }
     } catch (err) {
       utils.log("uploadThumbnail error", err);
+      throw err; // let UI know upload failed
     }
   },
 
   // Update user fields (name, password) via REST JSON
   updateUser: async (userPayload) => {
+    console.log("updateUser payload:", userPayload);
     try {
-      const tokens = await secure.get('tokens');
-      const authHeaders = tokens ? { Authorization: `Bearer ${tokens.access}` } : {};
+      const tokens = await secure.get("tokens");
+      const authHeaders = tokens
+        ? { Authorization: `Bearer ${tokens.access}` }
+        : {};
 
       const response = await api.post("/chat/profile/", userPayload, {
         headers: { ...authHeaders },
@@ -621,8 +650,10 @@ toggleNotifications: () => {
     }
 
     try {
-      const tokens = await secure.get('tokens');
-      const authHeaders = tokens ? { Authorization: `Bearer ${tokens.access}` } : {};
+      const tokens = await secure.get("tokens");
+      const authHeaders = tokens
+        ? { Authorization: `Bearer ${tokens.access}` }
+        : {};
 
       const response = await api.post("/chat/profile/", settings, {
         headers: { ...authHeaders },
@@ -641,7 +672,6 @@ toggleNotifications: () => {
       utils.log("updateSettings error", err);
     }
   },
-
 }));
 
 export default useGlobal;
