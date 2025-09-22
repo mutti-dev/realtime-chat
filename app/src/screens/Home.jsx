@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
-import { SafeAreaView, Text, TouchableOpacity, View, StyleSheet, Dimensions, Image } from "react-native";
+import { Text, TouchableOpacity, View, StyleSheet, Dimensions, Image } from "react-native";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,10 +8,9 @@ import RequestsScreen from "./Requests";
 import FriendsScreen from "./Friends";
 import ProfileScreen from "./Profile";
 import useGlobal from "../core/global";
-import Thumbnail from "../common/Thumbnail";
+
 import { useTheme } from "react-native-paper";
 import SettingsScreen from './Settings';
-import ShowImage from '../common/ShowImage';
 
 
 
@@ -134,36 +133,40 @@ function CustomHeader({ navigation, route }) {
     const onGoSettings = useCallback(() => navigation.navigate('Settings'), [navigation]);
 
     return (
-        <View style={{
-            backgroundColor: theme.colors.background,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-          
-        }}>
+        // <View style={{
+        //     backgroundColor: theme.colors.background,
+        //     paddingHorizontal: 16,
+        //     paddingVertical: 12,
+
+        // }}>
+
+        <LinearGradient
+            colors={theme.colors.gradients.background}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+
+            }}
+        >
             <View style={{
                 flexDirection: 'row',
                 alignItems: 'left',
                 justifyContent: 'space-between'
             }}>
-              
+
                 <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    {/* <Image
-                        source={require("../assets/icon.png")}
-                        style={{
-                            width: 80,
-                            height: 80,
-                            marginRight: 0
-                        }}
-                    /> */}
+
                     <View>
                         <Text style={{
                             fontSize: 28,
                             fontWeight: '600',
                             color: theme.colors.title,
-                            padding: 8, 
-                            marginLeft: 8 
+                            padding: 8,
+                            marginLeft: 8
                         }}>{getHeaderTitle()}</Text>
-                        
+
                     </View>
                 </View>
 
@@ -178,7 +181,7 @@ function CustomHeader({ navigation, route }) {
 
                 </View>
             </View>
-        </View>
+        </LinearGradient>
     );
 }
 

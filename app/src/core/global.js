@@ -553,7 +553,9 @@ const useGlobal = create((set, get) => ({
   uploadThumbnail: async (file) => {
     try {
       const tokens = await secure.get("tokens");
-      const authHeaders = tokens ? { Authorization: `Bearer ${tokens.access}` } : {};
+      const authHeaders = tokens
+        ? { Authorization: `Bearer ${tokens.access}` }
+        : {};
 
       const filename =
         file?.fileName ||
@@ -569,7 +571,10 @@ const useGlobal = create((set, get) => ({
       });
 
       // Use fetch for multipart uploads on React Native to avoid axios content-type/adapter issues
-      const baseURL = (api && api.defaults && api.defaults.baseURL) ? api.defaults.baseURL : `https://${ADDRESS}`;
+      const baseURL =
+        api && api.defaults && api.defaults.baseURL
+          ? api.defaults.baseURL
+          : `https://${ADDRESS}`;
       const url = baseURL.replace(/\/$/, "") + "/chat/profile/";
 
       const resp = await fetch(url, {
@@ -583,7 +588,9 @@ const useGlobal = create((set, get) => ({
 
       if (!resp.ok) {
         const text = await resp.text().catch(() => null);
-        const err = new Error(`upload failed: ${resp.status} ${resp.statusText} ${text || ""}`);
+        const err = new Error(
+          `upload failed: ${resp.status} ${resp.statusText} ${text || ""}`
+        );
         utils.log("uploadThumbnail fetch response error", err);
         throw err;
       }

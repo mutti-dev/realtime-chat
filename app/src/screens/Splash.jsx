@@ -37,7 +37,7 @@ function SplashScreen({ navigation }) {
     // Fade in animation
     Animated.timing(fadeIn, {
       toValue: 1,
-      duration: 800,
+      duration: 10000,
       useNativeDriver: true,
     }).start();
 

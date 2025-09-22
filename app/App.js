@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { SafeAreaView, StatusBar, Text } from "react-native";
+
 
 import "./src/core/fontawesome";
 
@@ -12,6 +12,8 @@ import SignUpScreen from "./src/screens/SignUp";
 import HomeScreen from "./src/screens/Home";
 import SearchScreen from "./src/screens/Search";
 import MessagesScreen from "./src/screens/Message";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import useGlobal from "./src/core/global";
 
@@ -43,7 +45,6 @@ function App() {
   const themeMode = useGlobal((state) => state.themeMode);
   const user = useGlobal((state) => state.user);
 
-
   // Decide theme: explicit user choice overrides system
   const theme = themeMode
     ? themeMode === "dark"
@@ -63,39 +64,46 @@ function App() {
   }, []);
 
   return (
-    <PaperProvider theme={theme}>
-      <NavigationContainer theme={theme}>
-        <StatusBar barStyle="transparent" />
-        <Stack.Navigator>
-          {!initialized ? (
-            <>
-              <Stack.Screen name="Splash" component={SplashScreen} />
-            </>
-          ) : !authenticated ? (
-            <>
-              <Stack.Screen name="SignIn" component={SignInScreen} />
-              <Stack.Screen name="SignUp" component={SignUpScreen} />
-            </>
-          ) : (
-            <>
-              <Stack.Screen name="Home" component={HomeScreen} />
-              <Stack.Screen name="Search" component={SearchScreen} 
-			  options={{ headerShown: false }}
-			  />
-              <Stack.Screen name="Messages" component={MessagesScreen} />
-              <Stack.Screen
-                name="FriendProfile"
-                component={FriendProfile}
-                options={{ headerShown: false }}
-              />
+    <SafeAreaProvider>
+      <PaperProvider theme={theme}>
+        <NavigationContainer theme={theme}>
+          <StatusBar
+            barStyle="light-content"
+            translucent={true}
+          />
+          <Stack.Navigator>
+            {!initialized ? (
+              <>
+                <Stack.Screen name="Splash" component={SplashScreen} />
+              </>
+            ) : !authenticated ? (
+              <>
+                <Stack.Screen name="SignIn" component={SignInScreen} />
+                <Stack.Screen name="SignUp" component={SignUpScreen} />
+              </>
+            ) : (
+              <>
+                <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen
+                  name="Search"
+                  component={SearchScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="Messages" component={MessagesScreen} />
+                <Stack.Screen
+                  name="FriendProfile"
+                  component={FriendProfile}
+                  options={{ headerShown: false }}
+                />
 
-              <Stack.Screen name="Notifications" component={RequestsScreen} />
-              <Stack.Screen name="AiChat" component={AIChatScreen} />
-            </>
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
-    </PaperProvider>
+                <Stack.Screen name="Notifications" component={RequestsScreen} />
+                <Stack.Screen name="AiChat" component={AIChatScreen} />
+              </>
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
 

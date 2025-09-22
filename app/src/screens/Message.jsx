@@ -12,6 +12,8 @@ import { ADDRESS } from "../core/api";
 import { faTimes, faFile, faPaperPlane, faImage } from "@fortawesome/free-solid-svg-icons";
 import utils from "../core/utils"
 import { useNavigation } from '@react-navigation/native';
+import BackButton from "../common/BackButton";
+
 
 
 
@@ -23,6 +25,8 @@ function MessageHeader({ friend }) {
 	const navigation = useNavigation();
 
 	return (
+
+		
 		<View
 			style={{
 				flexDirection: "row",
@@ -31,7 +35,7 @@ function MessageHeader({ friend }) {
 				paddingVertical: 8,
 			}}
 		>
-			{/* navigate to Profile screen (avoid navigating to missing FriendProfile) */}
+
 			<TouchableOpacity
 				onPress={() => navigation.navigate("FriendProfile", { details: friend })}
 				activeOpacity={0.7}
@@ -75,11 +79,12 @@ function MessageHeader({ friend }) {
 					{friend?.is_online
 						? "Online"
 						: friend?.last_online
-							? `Last seen ${new Date(friend.last_online).toLocaleString()}`
+							? `Last seen ${utils.formatTime(friend.last_online)}`
 							: "Offline"}
 				</Text>
 			</View>
 		</View>
+	
 	);
 }
 
@@ -561,7 +566,10 @@ function MessagesScreen({ navigation, route }) {
 	useLayoutEffect(() => {
 		navigation.setOptions({
 			headerTitle: () => <MessageHeader friend={friend} />,
-			headerStyle: { backgroundColor: theme.colors.level3 },
+			headerStyle: {
+				backgroundColor: theme.colors.level3, 
+			
+			},
 		})
 	}, [navigation, friend, theme]);
 

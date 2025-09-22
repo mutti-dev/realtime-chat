@@ -11,4 +11,10 @@ export const DarkScheme = {
   button: '#0A84FF',           // Primary button color (matching primary)
   border: '#3A3A3C',           // Dark gray for borders/dividers
   searchBar: '#1C1C1E',        // Background for search input
+
+  gradients: {
+    primary: ['#8B5CF6', '#0A84FF'],
+    danger: ['#FF5C5C', '#FF3B30'],
+    background: ['#000000', '#8B5CF6'],
+  },
 };
