@@ -1,18 +1,23 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
-import { Modal, Animated, Easing, FlatList, InputAccessoryView, Keyboard, Platform, SafeAreaView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, Image } from "react-native"
+import {
+	Modal, Animated, Easing, FlatList, InputAccessoryView, Platform, SafeAreaView, Text, TouchableOpacity, View, Image,
+} from "react-native"
 import Thumbnail from "../common/Thumbnail"
 import ShowImage from "../common/ShowImage"
-import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
+
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome"
 import useGlobal from "../core/global"
 import { useTheme } from "react-native-paper";
 import { LinearGradient } from 'expo-linear-gradient';
 import { ADDRESS } from "../core/api";
-import { faTimes, faFile, faPaperPlane, faImage } from "@fortawesome/free-solid-svg-icons";
+import {
+	faTimes, faFile
+} from "@fortawesome/free-solid-svg-icons";
 import utils from "../core/utils"
 import { useNavigation } from '@react-navigation/native';
-import BackButton from "../common/BackButton";
+import MessageInput from "../component/MessageInput";
+
+
 
 
 
@@ -26,7 +31,7 @@ function MessageHeader({ friend }) {
 
 	return (
 
-		
+
 		<View
 			style={{
 				flexDirection: "row",
@@ -84,7 +89,7 @@ function MessageHeader({ friend }) {
 				</Text>
 			</View>
 		</View>
-	
+
 	);
 }
 
@@ -394,162 +399,6 @@ function isImageFile(file) {
 }
 
 
-
-
-
-function MessageInput({ message, setMessage, onSend, onFileSend }) {
-	const theme = useTheme();
-
-	const selectFile = async () => {
-		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-		if (status !== "granted") {
-			alert("Permission to access media library is required!");
-			return;
-		}
-
-		const result = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ImagePicker.MediaTypeOptions.All, // ✅ correct for expo
-			allowsEditing: false,
-			quality: 1,
-			base64: false,
-		});
-
-		console.log("Picker result:", result);
-
-		if (result.canceled) {
-			return;
-		}
-
-		if (result.assets && result.assets.length > 0) {
-			const asset = result.assets[0];
-
-			try {
-				const manipResult = await ImageManipulator.manipulateAsync(
-					asset.uri,
-					[{ resize: { width: Math.min(asset.width || 1024, 1024) } }],
-					{
-						compress: 0.75,
-						format: ImageManipulator.SaveFormat.JPEG,
-						base64: true,
-					}
-				);
-
-				const fileName = asset.fileName || asset.uri.split("/").pop();
-				const file = {
-					name: fileName,
-					type: "image/jpeg",
-					data: manipResult.base64 || null,
-					uri: manipResult.uri,
-				};
-				onFileSend(file);
-			} catch (err) {
-				const fileName = asset.fileName || asset.uri.split("/").pop();
-				const file = {
-					name: fileName,
-					type: asset.type || "image",
-					data: null,
-					uri: asset.uri,
-				};
-				onFileSend(file);
-			}
-		}
-	};
-
-
-
-	const canSend = message.trim().length > 0;
-
-	return (
-		<View style={{
-			paddingHorizontal: 16,
-			paddingVertical: 12,
-			backgroundColor: theme.colors.background,
-			flexDirection: 'row',
-			alignItems: 'center',
-			borderTopWidth: 1,
-			borderTopColor: theme.colors.border,
-			shadowColor: "#000",
-			shadowOffset: { width: 0, height: -4 },
-			shadowOpacity: 0.1,
-			shadowRadius: 12,
-			elevation: 8,
-		}}>
-			<TouchableOpacity
-				onPress={selectFile}
-				style={{
-					width: 40,
-					height: 40,
-					borderRadius: 20,
-					backgroundColor: 'rgba(0, 122, 255, 0.1)',
-					alignItems: 'center',
-					justifyContent: 'center',
-					marginRight: 12,
-				}}
-			>
-				<FontAwesomeIcon icon={faImage} size={18} color={theme.colors.primary} />
-			</TouchableOpacity>
-
-			<View style={{
-				flex: 1,
-				backgroundColor: theme.colors.searchBar,
-				borderRadius: 24,
-				borderWidth: 1,
-				borderColor: theme.colors.border,
-				paddingHorizontal: 20,
-				minHeight: 48,
-				justifyContent: 'center',
-			}}>
-				<TextInput
-					placeholder="Type a message..."
-					color={theme.colors.text}
-					placeholderTextColor={theme.colors.placeholder}
-					value={message}
-					onChangeText={setMessage}
-					style={{
-						fontSize: 16,
-						color: theme.colors.text,
-						lineHeight: 20,
-						paddingVertical: 0,
-					}}
-					multiline={true}
-					maxLength={1000}
-				/>
-			</View>
-
-			<TouchableOpacity
-				onPress={onSend}
-				disabled={!canSend}
-				style={{
-					width: 40,
-					height: 40,
-					borderRadius: 20,
-					backgroundColor: canSend ? '#007AFF' : '#ccc',
-					alignItems: 'center',
-					justifyContent: 'center',
-					marginLeft: 12,
-					shadowColor: canSend ? '#007AFF' : 'transparent',
-					shadowOffset: { width: 0, height: 2 },
-					shadowOpacity: 0.3,
-					shadowRadius: 4,
-					elevation: canSend ? 3 : 0,
-				}}
-			>
-				<FontAwesomeIcon
-					icon={faPaperPlane}
-					size={16}
-					color="white"
-					style={{ marginLeft: 2 }}
-				/>
-			</TouchableOpacity>
-		</View>
-	);
-}
-
-
-
-
-
 function MessagesScreen({ navigation, route }) {
 	const theme = useTheme();
 	const [message, setMessage] = useState('')
@@ -567,8 +416,8 @@ function MessagesScreen({ navigation, route }) {
 		navigation.setOptions({
 			headerTitle: () => <MessageHeader friend={friend} />,
 			headerStyle: {
-				backgroundColor: theme.colors.level3, 
-			
+				backgroundColor: theme.colors.level3,
+
 			},
 		})
 	}, [navigation, friend, theme]);
@@ -618,11 +467,14 @@ function MessagesScreen({ navigation, route }) {
 						<MessageInput message={message} setMessage={onType} onSend={onSend} onFileSend={onFileSend} />
 					</InputAccessoryView>
 				) : (
-					<MessageInput message={message} setMessage={onType} onSend={onSend} onFileSend={onFileSend} />
+					<MessageInput message={message} setMessage={onType} onSend={onSend} onFileSend={onFileSend} theme={theme} />
 				)}
 			</SafeAreaView>
 		</LinearGradient>
 	)
 }
+
+
+
 
 export default MessagesScreen

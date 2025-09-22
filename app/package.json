@@ -40,7 +40,9 @@
     "react-native-vector-icons": "^10.3.0",
     "react-native-web": "^0.20.0",
     "rn-wave-bottom-bar": "^2.2.36",
-    "zustand": "^5.0.8"
+    "zustand": "^5.0.8",
+    "expo-av": "~15.1.7",
+    "expo-document-picker": "~13.1.6"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
