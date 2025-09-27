@@ -5,6 +5,7 @@ import os
 import uuid
 import imghdr
 from django.utils import timezone
+import mimetypes
 
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
@@ -37,6 +38,7 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
 import sys
 from PIL import Image
+
 
 
 class ChatConsumer(WebsocketConsumer):
@@ -84,7 +86,7 @@ class ChatConsumer(WebsocketConsumer):
         data_source = data.get("source")
 
         # Pretty print  python dict
-        print("receive", json.dumps(data, indent=2))
+        # print("receive", json.dumps(data, indent=2))
 
         # Get friend list
         if data_source == "friend.list":
@@ -280,75 +282,103 @@ class ChatConsumer(WebsocketConsumer):
         # Send back to the requestor
         self.send_group(user.username, "message.list", data)
 
+
+
+
+
     def receive_message_send(self, data):
         user = self.scope["user"]
         connectionId = data.get("connectionId")
         message_text = data.get("message")
-        # client-provided temporary id (optional)
         client_temp_id = data.get("clientTempId")
-        # file_data may be in different shapes
-        file_data = message_text.get("file") if isinstance(message_text, dict) else None
 
-        # debug log
-        # ...existing debug file write removed for production ...
+        file_data = message_text.get("file") if isinstance(message_text, dict) else None
+        print("file data", file_data)
+
         try:
             connection = Connection.objects.get(id=connectionId)
         except Connection.DoesNotExist:
             print("Error: couldn't find connection")
             return
 
-        # If file payload present, handle similarly to receive_file
         if file_data:
             filename, raw_bytes, mime_hint = self._decode_base64_field(file_data)
             if raw_bytes:
-                # try image detection
+                # detect type
                 is_image = False
                 try:
                     img_type = imghdr.what(None, raw_bytes)
                     if img_type:
                         is_image = True
+                    else:
+                        is_image = False
                 except Exception:
-                    is_image = False
+                    pass
+
+                # try mime detection (fallback for docs/videos)
+                guessed_type, _ = mimetypes.guess_type(filename or "")
+                mime_type = mime_hint or guessed_type or "application/octet-stream"
+                print("MIME type detected:", mime_type)
 
                 if is_image:
                     if len(raw_bytes) > self.MAX_IMAGE_BYTES:
                         print("Image too large, rejecting")
                         return
-                    processed = self._process_image_bytes(raw_bytes, max_width=self.MAX_IMAGE_WIDTH, quality=80)
+                    processed = self._process_image_bytes(
+                        raw_bytes, max_width=self.MAX_IMAGE_WIDTH, quality=80
+                    )
                     if not processed:
                         return
                     safe_name = self._safe_filename(filename)
                     file_content = ContentFile(processed, name=safe_name)
-                else:
+
+                elif mime_type.startswith("video/"):
+                    print("Detected video file")
                     if len(raw_bytes) > self.MAX_VIDEO_BYTES:
-                        print("File too large, rejecting")
+                        print("Video too large, rejecting")
+                        return
+                    safe_name = self._safe_filename(filename)
+                    file_content = ContentFile(raw_bytes, name=safe_name)
+                    print("Video file accepted", file_content)
+
+                elif mime_type.startswith("application/") or mime_type.startswith("text/"):
+                    # document types (PDF, DOC, TXT, etc.)
+                    if len(raw_bytes) > self.MAX_DOC_BYTES:
+                        print("Document too large, rejecting")
                         return
                     safe_name = self._safe_filename(filename)
                     file_content = ContentFile(raw_bytes, name=safe_name)
 
-                message = Message.objects.create(connection=connection, user=user, file=file_content)
+                else:
+                    print("Unsupported file type:", mime_type)
+                    return
+
+                message = Message.objects.create(
+                    connection=connection, user=user, file=file_content
+                )
             else:
-                # plain text or invalid file_data: save as text
-                message = Message.objects.create(connection=connection, user=user, text=message_text if isinstance(message_text, str) else '')
+                message = Message.objects.create(
+                    connection=connection,
+                    user=user,
+                    text=message_text if isinstance(message_text, str) else "",
+                )
         else:
-            # Save text only
-            message = Message.objects.create(connection=connection, user=user, text=message_text if isinstance(message_text, str) else '')
+            message = Message.objects.create(
+                connection=connection,
+                user=user,
+                text=message_text if isinstance(message_text, str) else "",
+            )
 
-        # Get recipient friend
-        recipient = (
-            connection.sender if connection.sender != user else connection.receiver
-        )
+        # send to both users (same as your existing code)
+        recipient = connection.sender if connection.sender != user else connection.receiver
 
-        # Send new message back to sender
         serialized_message = MessageSerializer(message, context={"user": user})
         serialized_friend = UserSerializer(recipient)
-        # include clientTempId so clients reconcile optimistic messages
         data = {"message": serialized_message.data, "friend": serialized_friend.data}
         if client_temp_id:
             data["clientTempId"] = client_temp_id
         self.send_group(user.username, "message.send", data)
 
-        # Send new message to receiver
         serialized_message = MessageSerializer(message, context={"user": recipient})
         serialized_friend = UserSerializer(user)
         data = {"message": serialized_message.data, "friend": serialized_friend.data}

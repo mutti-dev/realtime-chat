@@ -1,29 +1,13 @@
-run: run-android run-ios
+.PHONY: app api ngrok
 
-run-android:
-	cd app && npm run android
+# Run Expo app
+app:
+	cd app && npx expo start -c
 
-run-ios:
-	cd app && npm run ios -- --simulator='iPhone 14 Pro Max'
+# Run Django server
+api:
+	cd api && python manage.py runserver
 
-server:
-	. .venv/bin/activate && cd api && python manage.py runserver
-
-# New helper targets ---------------------------------------------------------
-migrate:
-	. .venv/bin/activate && cd api && python manage.py migrate
-
-collectstatic:
-	. .venv/bin/activate && cd api && python manage.py collectstatic --noinput
-
-install:
-	. .venv/bin/activate && pip install -r requirements.txt
-
-docker-build:
-	docker build -t realtime-chat .
-
-docker-up:
-	docker compose up
-
-redis:
-	redis-server
+# Run Ngrok
+ngrok:
+	ngrok http --domain=equal-useful-buck.ngrok-free.app 8000

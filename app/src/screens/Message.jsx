@@ -16,13 +16,8 @@ import {
 import utils from "../core/utils"
 import { useNavigation } from '@react-navigation/native';
 import MessageInput from "../component/MessageInput";
-
-
-
-
-
-
-
+import FilePreview from "../component/FilePreview"
+import { Video } from 'expo-av'; // add Video import
 
 function MessageHeader({ friend }) {
 	const userStatuses = useGlobal(state => state.userStatuses);
@@ -99,7 +94,8 @@ function MessageBubbleMe({ text, file, onFilePress, isSending }) {
 	const theme = useTheme();
 	const openFile = () => { if (!file) return; onFilePress(file); };
 
-	const imageUrl = isImageFile(file) ? utils.resolvePreviewUri(file) : null;
+
+
 
 	return (
 		<View style={{ flexDirection: 'row', padding: 8, paddingRight: 16 }}>
@@ -132,16 +128,7 @@ function MessageBubbleMe({ text, file, onFilePress, isSending }) {
 									opacity: 0.6,
 								}} />
 							</View>
-						) : imageUrl ? (
-							<View style={{ borderRadius: 12, overflow: 'hidden' }}>
-								<ShowImage url={imageUrl} size={200} />
-							</View>
-						) : (
-							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-								<FontAwesomeIcon icon={faFile} size={16} color="white" />
-								<Text style={{ color: 'white', fontSize: 16, marginLeft: 8 }}>Document</Text>
-							</View>
-						)}
+						) : <FilePreview file={file} />}
 					</TouchableOpacity>
 				) : (
 					<Text style={{
@@ -220,73 +207,96 @@ function MessageTypingAnimation({ offset }) {
 }
 
 function MessageBubbleFriend({ text = '', friend, typing = false, file, onFilePress }) {
-	const openFile = () => { if (!file) return; onFilePress(file); };
-	const imageUrl = isImageFile(file) ? utils.resolvePreviewUri(file) : null;
+  const [modalVisible, setModalVisible] = useState(false);
+  const [mediaUrl, setMediaUrl] = useState('');
 
-	return (
-		<View style={{ flexDirection: 'row', padding: 8, paddingLeft: 16 }}>
-			<View style={{
-				shadowColor: '#000',
-				shadowOffset: { width: 0, height: 1 },
-				shadowOpacity: 0.1,
-				shadowRadius: 2,
-				elevation: 2,
-			}}>
-				<Thumbnail url={friend.thumbnail} size={36} />
-			</View>
-			<View style={{
-				backgroundColor: 'rgba(255, 255, 255, 0.95)',
-				borderRadius: 20,
-				borderBottomLeftRadius: 4,
-				maxWidth: '80%',
-				paddingHorizontal: 16,
-				paddingVertical: 12,
-				marginLeft: 8,
-				marginRight: 40,
-				shadowColor: '#000',
-				shadowOffset: { width: 0, height: 1 },
-				shadowOpacity: 0.1,
-				shadowRadius: 4,
-				elevation: 3,
-			}}>
-				{typing ? (
-					<View style={{ flexDirection: 'row', paddingVertical: 4 }}>
-						<MessageTypingAnimation offset={0} />
-						<MessageTypingAnimation offset={1} />
-						<MessageTypingAnimation offset={2} />
-					</View>
-				) : file ? (
-					<TouchableOpacity onPress={openFile} activeOpacity={0.8}>
-						{imageUrl ? (
-							<View style={{ borderRadius: 12, overflow: 'hidden' }}>
-								<ShowImage url={imageUrl} size={200} />
-							</View>
-						) : (
-							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-								<FontAwesomeIcon icon={faFile} size={16} color="#666" />
-								<Text style={{ color: '#333', fontSize: 16, marginLeft: 8 }}>Document</Text>
-							</View>
-						)}
-					</TouchableOpacity>
-				) : (
-					<Text style={{
-						color: '#333',
-						fontSize: 16,
-						lineHeight: 20,
-						fontWeight: '500',
-					}}>
-						{text}
-					</Text>
-				)}
-			</View>
-		</View>
-	);
+  const openFile = () => {
+    if (!file) return;
+    setMediaUrl(file);   // 👈 file ko mediaUrl me set karo
+    setModalVisible(true);
+  };
+
+  return (
+    <View style={{ flexDirection: 'row', padding: 8, paddingLeft: 16 }}>
+      <View style={{
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+      }}>
+        <Thumbnail url={friend.thumbnail} size={36} />
+      </View>
+      <View style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderRadius: 20,
+        borderBottomLeftRadius: 4,
+        maxWidth: '80%',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        marginLeft: 8,
+        marginRight: 40,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      }}>
+        {typing ? (
+          <View style={{ flexDirection: 'row', paddingVertical: 4 }}>
+            <MessageTypingAnimation offset={0} />
+            <MessageTypingAnimation offset={1} />
+            <MessageTypingAnimation offset={2} />
+          </View>
+        ) : file ? (
+          <TouchableOpacity onPress={openFile} activeOpacity={0.8}>
+            <FilePreview file={file} />
+          </TouchableOpacity>
+        ) : (
+          <Text style={{
+            color: '#333',
+            fontSize: 16,
+            lineHeight: 20,
+            fontWeight: '500',
+          }}>
+            {text}
+          </Text>
+        )}
+
+        {/* 👇 Yaha modal add karo */}
+        <ImageVideoModal
+          visible={modalVisible}
+          mediaUrl={mediaUrl}
+          onClose={() => setModalVisible(false)}
+        />
+      </View>
+    </View>
+  );
 }
+
 
 const ImageVideoModal = ({ visible, mediaUrl, onClose }) => {
 	if (!mediaUrl) return null;
-	const isRemote = typeof mediaUrl === 'string' && (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://') || mediaUrl.startsWith('file://') || mediaUrl.startsWith('data:'));
-	const source = isRemote ? { uri: mediaUrl } : (mediaUrl.startsWith('/') ? { uri: 'http://' + ADDRESS + mediaUrl } : { uri: mediaUrl });
+	// normalize to uri string
+	let uri = null;
+	if (typeof mediaUrl === 'string') {
+		uri = mediaUrl;
+	} else if (mediaUrl?.uri) {
+		uri = mediaUrl.uri;
+	} else if (mediaUrl?.file_url) {
+		uri = mediaUrl.file_url;
+	} else if (mediaUrl?.url) {
+		uri = mediaUrl.url;
+	} else {
+		uri = String(mediaUrl);
+	}
+	// If relative path, prefix ADDRESS
+	if (uri && !uri.match(/^[a-zA-Z]+:\/\//)) {
+		uri = `http://${ADDRESS}${uri.startsWith('/') ? '' : '/'}${uri}`;
+	}
+	const source = { uri };
+	// prefer explicit file_type/fileType fields on object, fallback to utils detection
+	const type = (typeof mediaUrl === 'object' && (mediaUrl.file_type || mediaUrl.fileType)) || utils.getFileType(uri);
 
 	return (
 		<Modal transparent={true} visible={visible} animationType="fade" onRequestClose={onClose}>
@@ -307,13 +317,15 @@ const ImageVideoModal = ({ visible, mediaUrl, onClose }) => {
 				</TouchableOpacity>
 
 				<View style={{ backgroundColor: 'transparent', borderRadius: 16, overflow: 'hidden', maxWidth: '90%', maxHeight: '80%' }}>
-					{isImageFile(mediaUrl) ? (
+					{type === 'image' ? (
 						<Image source={source} style={{ width: 350, height: 350, borderRadius: 16 }} resizeMode="contain" />
-					) : (typeof mediaUrl === 'string' && (mediaUrl.endsWith('.mp4') || mediaUrl.endsWith('.mov'))) ? (
-						<View style={{ width: 350, height: 350, alignItems: 'center', justifyContent: 'center' }}>
-							<Text style={{ color: 'white' }}>Video playback</Text>
-						</View>
-					) : null}
+					) : type === 'video' ? (
+						<Video source={{ uri: source.uri }} style={{ width: 350, height: 350 }} useNativeControls resizeMode="contain" />
+					) : type === 'audio' ? (
+						<Text style={{ color: 'white' }}>🎵 Audio Playback</Text>
+					) : (
+						<Text style={{ color: 'white' }}>📄 Document</Text>
+					)}
 				</View>
 			</View>
 		</Modal>
@@ -326,12 +338,25 @@ function MessageBubble({ index, message, friend }) {
 	const [mediaUrl, setMediaUrl] = useState('');
 	const [isSending, setIsSending] = useState(false)
 	const theme = useTheme();
+	// use message.file_url when server provided absolute url, fallback to message.file
+	const fileForMessage = message?.file_url || message?.file || null;
 
 	const messagesTyping = useGlobal(state => state.messagesTyping);
 
 	const openFile = (file) => {
 		if (!file) return;
-		setMediaUrl(file);
+		// normalize file shapes: could be string url or object { uri, file_url, url }
+		if (typeof file === 'string') {
+			setMediaUrl(file);
+		} else if (file?.file_url) {
+			setMediaUrl(file.file_url);
+		} else if (file?.uri) {
+			setMediaUrl(file.uri);
+		} else if (file?.url) {
+			setMediaUrl(file.url);
+		} else {
+			setMediaUrl(file);
+		}
 		setModalVisible(true);
 	};
 
@@ -361,14 +386,14 @@ function MessageBubble({ index, message, friend }) {
 	}, [messagesTyping]);
 
 	if (index === 0 && showTyping) {
-		return <MessageBubbleFriend friend={friend} typing={true} onFilePress={openFile} />;
+		return <MessageBubbleFriend friend={friend} typing={true} onFilePress={openFile} file={null} />;
 	}
 
 	return message.is_me ? (
 		<>
 			<MessageBubbleMe
 				text={message.text}
-				file={message.file}
+				file={fileForMessage}
 				isSending={isSending}
 				onFilePress={openFile}
 			/>
@@ -379,29 +404,17 @@ function MessageBubble({ index, message, friend }) {
 			/>
 		</>
 	) : (
-		<MessageBubbleFriend text={message.text} friend={friend} file={message.file} onFilePress={openFile} />
+		<MessageBubbleFriend text={message.text} friend={friend} file={fileForMessage} onFilePress={openFile} />
 	);
 }
 
-function isImageFile(file) {
-	// Accept string urls, file objects or data URIs
-	if (!file) return false;
-	if (typeof file === 'object') {
-		const uri = file.uri || '';
-		return /\.(jpe?g|png|gif|webp|bmp)(\?.*)?$/i.test(uri) || (file.type && file.type.startsWith('image'));
-	}
-	if (typeof file === 'string') {
-		// data:image/...
-		if (file.startsWith('data:image')) return true;
-		return /\.(jpe?g|png|gif|webp|bmp)(\?.*)?$/i.test(file);
-	}
-	return false;
-}
+
 
 
 function MessagesScreen({ navigation, route }) {
 	const theme = useTheme();
 	const [message, setMessage] = useState('')
+	const uploadFile = useGlobal(state => state.uploadFile) // use uploadFile for binary uploads
 
 	const messagesList = useGlobal(state => state.messagesList)
 	const messagesNext = useGlobal(state => state.messagesNext)
@@ -409,8 +422,11 @@ function MessagesScreen({ navigation, route }) {
 	const messageSend = useGlobal(state => state.messageSend)
 	const messageType = useGlobal(state => state.messageType)
 
+
 	const connectionId = route.params.id
 	const friend = route.params.friend
+
+	// console.log("📂 messagesList:", messagesList);
 
 	useLayoutEffect(() => {
 		navigation.setOptions({
@@ -434,11 +450,17 @@ function MessagesScreen({ navigation, route }) {
 		setMessage('')
 	}
 
-	function onFileSend(file) {
+	async function onFileSend(file) {
 		if (!file) return;
-		// send resized file object (contains uri and smaller base64)
-		messageSend(connectionId, { file });
-		setMessage('')
+		// Use REST upload endpoint to send binary (server will persist and broadcast created message)
+		try {
+			// include connectionId so server can create/persist the message and broadcast to both users
+			await uploadFile({ file, connectionId });
+			// Clearing input/preview handled by MessageInput; server will broadcast created message via websocket.
+		} catch (err) {
+			console.log('file upload failed', err);
+		}
+		setMessage('');
 	}
 
 	function onType(value) {
@@ -473,8 +495,4 @@ function MessagesScreen({ navigation, route }) {
 		</LinearGradient>
 	)
 }
-
-
-
-
 export default MessagesScreen

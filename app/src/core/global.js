@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import secure from "./secure";
 import api, { ADDRESS } from "./api";
+import { Platform } from "react-native";
 import utils from "./utils";
+import * as mime from "mime";
 
 //-------------------------------------
 //   Socket receive message handlers
@@ -240,6 +242,7 @@ const useGlobal = create((set, get) => ({
         }
         const user = response.data.user;
         const tokens = response.data.tokens;
+        console.log(tokens);
 
         secure.set("tokens", tokens);
 
@@ -547,15 +550,15 @@ const useGlobal = create((set, get) => ({
   },
 
   //---------------------
-  //     Thumbnail (now via REST)
+  //     Thumbnail and Files (now via REST)
   //---------------------
 
   uploadThumbnail: async (file) => {
     try {
       const tokens = await secure.get("tokens");
       const authHeaders = tokens
-        ? { Authorization: `Bearer ${tokens.access}` }
-        : {};
+        ? { Authorization: `Bearer ${tokens.access}`, Accept: "application/json" }
+        : { Accept: "application/json" };
 
       const filename =
         file?.fileName ||
@@ -570,18 +573,25 @@ const useGlobal = create((set, get) => ({
         type: fileType,
       });
 
-      // Use fetch for multipart uploads on React Native to avoid axios content-type/adapter issues
+      // prefer api.defaults.baseURL when available, otherwise use http://ADDRESS
       const baseURL =
         api && api.defaults && api.defaults.baseURL
           ? api.defaults.baseURL
-          : `https://${ADDRESS}`;
-      const url = baseURL.replace(/\/$/, "") + "/chat/profile/";
+          : `http://${ADDRESS}`;
+      let url = baseURL.replace(/\/$/, "") + "/chat/profile/";
+      // Android emulator mapping
+      if (Platform.OS === "android") {
+        url = url.replace("http://localhost", "http://10.0.2.2").replace(
+          "http://127.0.0.1",
+          "http://10.0.2.2"
+        );
+      }
 
       const resp = await fetch(url, {
         method: "POST",
         headers: {
           ...authHeaders,
-          // Do NOT set Content-Type (fetch will set boundary for multipart/form-data)
+          // Do NOT set Content-Type (fetch will set boundary)
         },
         body: form,
       });
@@ -606,11 +616,81 @@ const useGlobal = create((set, get) => ({
               : null,
         }));
       }
+      return data;
     } catch (err) {
       utils.log("uploadThumbnail error", err);
       throw err; // let UI know upload failed
     }
-  },
+   },
+ 
+   uploadFile: async (file) => {
+    // Accept either a file object or an object { file, connectionId, text }
+    const payload = file || {};
+    const fileObj = payload.file || payload;
+    utils.log("uploadFile payload", payload);
+    try {
+      const tokens = await secure.get("tokens");
+      const authHeaders = tokens
+        ? { Authorization: `Bearer ${tokens.access}`, Accept: "application/json" }
+        : { Accept: "application/json" };
+
+      const filename =
+        fileObj?.fileName ||
+        fileObj?.name ||
+        (fileObj?.uri ? fileObj.uri.split("/").pop() : "upload.dat");
+
+      const fileType =
+        fileObj?.type ||
+        (filename.includes(".") ? mime.getType(filename) : null) ||
+        "application/octet-stream";
+
+      const form = new FormData();
+      form.append("file", {
+        uri: fileObj.uri,
+        name: filename,
+        type: fileType,
+      });
+      // attach connectionId/text if provided so server can persist & broadcast
+      if (payload.connectionId) form.append("connectionId", String(payload.connectionId));
+      if (payload.text) form.append("text", String(payload.text));
+
+      const baseURL =
+        api && api.defaults && api.defaults.baseURL
+          ? api.defaults.baseURL
+          : `http://${ADDRESS}`;
+      let url = baseURL.replace(/\/$/, "") + "/chat/upload/";
+      if (Platform.OS === "android") {
+        url = url.replace("http://localhost", "http://10.0.2.2").replace(
+          "http://127.0.0.1",
+          "http://10.0.2.2"
+        );
+      }
+
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          ...authHeaders,
+          // do not set Content-Type; fetch will set correct multipart boundary
+        },
+        body: form,
+      });
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => null);
+        const err = new Error(
+          `upload failed: ${resp.status} ${resp.statusText} ${text || ""}`
+        );
+        utils.log("uploadFile fetch error", err);
+        throw err;
+      }
+
+      const data = await resp.json().catch(() => null);
+      return data;
+    } catch (err) {
+      utils.log("uploadFile error", err);
+      throw err;
+    }
+   },
 
   // Update user fields (name, password) via REST JSON
   updateUser: async (userPayload) => {

@@ -1,3 +1,4 @@
+//utils.js
 import { Platform } from "react-native"
 import ProfileImage from '../assets/profile.png'
 import { ADDRESS } from "./api"
@@ -110,5 +111,57 @@ function resolvePreviewUri(file) {
 
 
 
+function getFileType(file) {
+  if (!file) return "unknown";
 
-export default { log, thumbnail, formatTime, image, resolvePreviewUri }
+  let uri = "";
+  let mimeType = "";
+
+  if (typeof file === "object") {
+    uri = file.uri || "";
+    mimeType = file.type || "";
+  } else if (typeof file === "string") {
+    uri = file;
+  }
+
+  // ----- IMAGE -----
+  if (
+    /\.(jpe?g|png|gif|webp|bmp|heic|heif)(\?.*)?$/i.test(uri) ||
+    mimeType.startsWith("image") ||
+    (typeof uri === "string" && uri.startsWith("data:image"))
+  ) {
+    return "image";
+  }
+
+  // ----- VIDEO -----
+  if (
+    /\.(mp4|mov|mkv|avi|webm)(\?.*)?$/i.test(uri) ||
+    mimeType.startsWith("video")
+  ) {
+    return "video";
+  }
+
+  // ----- AUDIO -----
+  if (
+    /\.(mp3|wav|m4a|aac|ogg|flac)(\?.*)?$/i.test(uri) ||
+    mimeType.startsWith("audio")
+  ) {
+    return "audio";
+  }
+
+  // ----- DOCUMENT -----
+  if (
+    /\.(pdf|docx?|xlsx?|pptx?|txt|csv)(\?.*)?$/i.test(uri) ||
+    mimeType.includes("pdf") ||
+    mimeType.includes("word") ||
+    mimeType.includes("excel") ||
+    mimeType.includes("text")
+  ) {
+    return "document";
+  }
+
+  return "unknown";
+}
+
+
+export default { log, thumbnail, formatTime, image, resolvePreviewUri, getFileType }

@@ -16,6 +16,10 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
 from langchain.vectorstores import Chroma
 from django.db import transaction
+from django.shortcuts import get_object_or_404
+from .models import Connection, Message, User
+from .serializers import MessageSerializer
+from .consumers import ChatConsumer
 
 def get_auth_for_user(user):
     tokens = RefreshToken.for_user(user)
@@ -231,3 +235,58 @@ class ProfileAPIView(APIView):
         # return the updated user
         out = UserSerializer(user)
         return Response(out.data, status=status.HTTP_200_OK)
+
+
+class MessageUploadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        connection_id = request.data.get("connectionId")
+        text = request.data.get("text", "")
+
+        connection = get_object_or_404(Connection, id=connection_id)
+
+        file = request.FILES.get("file")  # multipart file
+        if not file and not text:
+            return Response(
+                {"error": "Either file or text is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Save message
+        message = Message.objects.create(
+            connection=connection,
+            user=user,
+            text=text,
+            file=file,
+        )
+
+        # Recipient = opposite user
+        recipient = connection.sender if connection.sender != user else connection.receiver
+
+        # Serialize for sender
+        serialized_message_sender = MessageSerializer(
+            message, context={"user": user, "request": request}
+        )
+        serialized_friend_sender = {"id": recipient.id, "username": recipient.username}
+
+        data_sender = {
+            "message": serialized_message_sender.data,
+            "friend": serialized_friend_sender,
+        }
+        ChatConsumer.send_group(user.username, "message.send", data_sender)
+
+        # Serialize for recipient
+        serialized_message_recipient = MessageSerializer(
+            message, context={"user": recipient, "request": request}
+        )
+        serialized_friend_recipient = {"id": user.id, "username": user.username}
+
+        data_recipient = {
+            "message": serialized_message_recipient.data,
+            "friend": serialized_friend_recipient,
+        }
+        ChatConsumer.send_group(recipient.username, "message.send", data_recipient)
+
+        return Response(serialized_message_sender.data, status=status.HTTP_201_CREATED)

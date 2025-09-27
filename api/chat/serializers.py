@@ -1,3 +1,4 @@
+import mimetypes
 from rest_framework import serializers
 from .models import User, Connection, Message
 
@@ -137,21 +138,52 @@ class FriendSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-	is_me = serializers.SerializerMethodField()
+    is_me = serializers.SerializerMethodField()
+    file_url = serializers.SerializerMethodField()
+    file_type = serializers.SerializerMethodField()
 
-	class Meta:
-		model = Message
-		fields = [
-			'id',
-			'is_me',
-			'text',
-			'created',
-			'file',
-			'is_ai',
-		]
+    class Meta:
+        model = Message
+        fields = [
+            "id",
+            "is_me",
+            "text",
+            "created",
+            "file",
+            "file_url",
+            "file_type",
+            "is_ai",
+        ]
 
-	def get_is_me(self, obj):
-		return self.context['user'] == obj.user
+    def get_is_me(self, obj):
+        return self.context["user"] == obj.user
+
+    def get_file_url(self, obj):
+        """Return absolute file URL if file is attached"""
+        if obj.file:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
+
+    def get_file_type(self, obj):
+        """Detect file type (image, video, audio, document)"""
+        if not obj.file:
+            return None
+
+        mime_type, _ = mimetypes.guess_type(obj.file.name)
+        if not mime_type:
+            return "document"
+
+        if mime_type.startswith("image/"):
+            return "image"
+        elif mime_type.startswith("video/"):
+            return "video"
+        elif mime_type.startswith("audio/"):
+            return "audio"
+        else:
+            return "document"
 
 
 class ProfileUpdateSerializer(serializers.Serializer):

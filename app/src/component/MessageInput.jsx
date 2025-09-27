@@ -1,38 +1,41 @@
 import { useEffect, useRef, useState } from "react"
 import {
-    Modal, Animated, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, Image, Dimensions, PanResponder,
-    Alert
+  Modal, Animated, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, Image, Dimensions, PanResponder,
+  Alert
 } from "react-native"
 
 import {
-    faTimes, faFile, faPaperPlane, faImage, faMicrophone,
-    faVideo,
-    faPlay,
-    faFileText,
+  faTimes, faFile, faPaperPlane, faImage, faMicrophone,
+  faVideo,
+  faPlay,
+  faFileText,
 } from "@fortawesome/free-solid-svg-icons";
+import useGlobal from "../core/global";
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome"
 import { useTheme } from "react-native-paper";
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
 const { width: screenWidth } = Dimensions.get('window');
 
 
 
-function MessageInput({ 
-  message, 
-  setMessage, 
-  onSend, 
+function MessageInput({
+  message,
+  setMessage,
+  onSend,
   onFileSend,
-  theme 
+  theme
 }) {
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  
+  const uploadFile = useGlobal(state => state.uploadFile)
+
   // Voice recording refs
   const recording = useRef(null);
   const recordingTimer = useRef(null);
@@ -128,7 +131,7 @@ function MessageInput({
 
       await recording.current.stopAndUnloadAsync();
       const uri = recording.current.getURI();
-      
+
       if (uri && recordingDuration >= 1) {
         const voiceMessage = {
           name: `voice_${Date.now()}.m4a`,
@@ -184,18 +187,18 @@ function MessageInput({
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
-    
+
     onPanResponderGrant: () => {
       startRecording();
     },
-    
+
     onPanResponderMove: (evt, gestureState) => {
       // Cancel if moved too far up
       if (gestureState.dy < -50) {
         cancelRecording();
       }
     },
-    
+
     onPanResponderRelease: (evt, gestureState) => {
       if (gestureState.dy < -50) {
         // Already cancelled
@@ -226,6 +229,8 @@ function MessageInput({
     }
   };
 
+
+
   const selectVideo = async () => {
     setShowAttachmentModal(false);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -241,6 +246,7 @@ function MessageInput({
     });
 
     if (!result.canceled && result.assets[0]) {
+      await processVideoFile(result.assets[0])
       const asset = result.assets[0];
       const fileName = asset.fileName || asset.uri.split('/').pop();
       setSelectedFile({
@@ -261,13 +267,15 @@ function MessageInput({
         copyToCacheDirectory: true,
       });
 
-      if (!result.canceled) {
+      // DocumentPicker returns { type: 'success'|'cancel', name, uri, size, mimeType }
+      if (result.type === 'success') {
+        await processDocumentFile(result);
         setSelectedFile({
-          name: result.assets[0].name,
+          name: result.name,
           type: 'document',
-          uri: result.assets[0].uri,
-          fileType: result.assets[0].mimeType,
-          size: result.assets[0].size,
+          uri: result.uri,
+          fileType: result.mimeType || 'application/octet-stream',
+          size: result.size,
         });
         setShowPreview(true);
       }
@@ -311,6 +319,39 @@ function MessageInput({
     }
   };
 
+
+
+  const processVideoFile = async (asset) => {
+    try {
+      const fileName = asset.fileName || asset.uri.split('/').pop();
+      setSelectedFile({
+        name: fileName,
+        type: 'video',
+        uri: asset.uri,          // 👈 sirf URI bhejo
+        fileType: 'video/mp4',
+      });
+      setShowPreview(true);
+    } catch (err) {
+      console.error('Video processing error:', err);
+    }
+  };
+
+  const processDocumentFile = async (doc) => {
+    try {
+      setSelectedFile({
+        name: doc.name,
+        type: 'document',
+        uri: doc.uri,            // 👈 sirf URI bhejo
+        fileType: doc.mimeType || 'application/octet-stream',
+        size: doc.size,
+      });
+      setShowPreview(true);
+    } catch (err) {
+      console.error('Document processing error:', err);
+    }
+  };
+
+
   const sendFile = () => {
     if (selectedFile) {
       onFileSend(selectedFile);
@@ -349,7 +390,7 @@ function MessageInput({
         shadowRadius: 12,
         elevation: 8,
       }}>
-        
+
         {/* Attachment Button */}
         <TouchableOpacity
           onPress={() => setShowAttachmentModal(true)}
@@ -363,7 +404,7 @@ function MessageInput({
             marginRight: 12,
           }}
         >
-          <FontAwesomeIcon icon="ellipsis-vertical" size={18} color={theme.colors.primary} />
+          <FontAwesomeIcon icon={faFile} size={18} color={theme.colors.primary} />
         </TouchableOpacity>
 
         {/* Text Input */}
@@ -529,7 +570,7 @@ function MessageInput({
                 Select Attachment
               </Text>
             </View>
-            
+
             <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
               {[
                 { icon: faImage, label: 'Photo', onPress: selectImage, color: '#FF6B6B' },
