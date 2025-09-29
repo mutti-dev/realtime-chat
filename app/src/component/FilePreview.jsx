@@ -7,12 +7,12 @@ import utils from "../core/utils";
 
 export default function FilePreview({ file }) {
   const type = utils.getFileType(file);
-  console.log("FilePreview detected type:", type);
+  // console.log("FilePreview detected type:", file);
 
   if (type === "image") {
     return (
       <Image
-        source={{ uri: utils.resolvePreviewUri(file) || file }}
+        source={{ uri: file }}
         style={{ width: 200, height: 200, borderRadius: 8 }}
         resizeMode="cover"
       />

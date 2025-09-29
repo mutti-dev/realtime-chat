@@ -1,374 +1,248 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react";
 import {
-  Modal, Animated, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, Image, Dimensions, PanResponder,
+  Modal,
+  Animated,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Image,
+  Dimensions,
+  PanResponder,
   Alert
-} from "react-native"
-
+} from "react-native";
 import {
-  faTimes, faFile, faPaperPlane, faImage, faMicrophone,
+  faTimes,
+  faFile,
+  faPaperPlane,
+  faImage,
+  faMicrophone,
   faVideo,
   faPlay,
-  faFileText,
+  faFileText
 } from "@fortawesome/free-solid-svg-icons";
-import useGlobal from "../core/global";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome"
-import { useTheme } from "react-native-paper";
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
+import useGlobal from "../core/global";
+
 const { width: screenWidth } = Dimensions.get('window');
 
+const formatDuration = (seconds) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
 
-
-function MessageInput({
-  message,
-  setMessage,
-  onSend,
-  onFileSend,
-  theme
-}) {
+function MessageInput({ message, setMessage, onSend, theme, connectionId }) {
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const uploadFile = useGlobal(state => state.uploadFile)
 
-  // Voice recording refs
   const recording = useRef(null);
   const recordingTimer = useRef(null);
   const microphoneScale = useRef(new Animated.Value(1)).current;
   const slideAnimation = useRef(new Animated.Value(0)).current;
 
-  // Cleanup recording on unmount
+  const sendFileGlobal = useGlobal(state => state.sendFile);
+
   useEffect(() => {
     return () => {
-      if (recording.current) {
-        recording.current.stopAndUnloadAsync();
-      }
-      if (recordingTimer.current) {
-        clearInterval(recordingTimer.current);
-      }
+      if (recording.current) recording.current.stopAndUnloadAsync();
+      if (recordingTimer.current) clearInterval(recordingTimer.current);
     };
   }, []);
 
-  // Request audio permissions
   const requestAudioPermissions = async () => {
-    try {
-      const permission = await Audio.requestPermissionsAsync();
-      if (permission.status !== 'granted') {
-        Alert.alert('Permission required', 'Audio recording permission is required to send voice messages.');
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error('Failed to get audio permissions:', error);
+    const { status } = await Audio.requestPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission required", "Audio recording permission is required.");
       return false;
     }
+    return true;
   };
 
-  // Start voice recording
   const startRecording = async () => {
-    try {
-      const hasPermission = await requestAudioPermissions();
-      if (!hasPermission) return;
+    if (!(await requestAudioPermissions())) return;
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true
+    });
 
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      recording.current = newRecording;
-      setIsRecording(true);
-      setRecordingDuration(0);
+    const { recording: newRecording } = await Audio.Recording.createAsync(
+      Audio.RecordingOptionsPresets.HIGH_QUALITY
+    );
 
-      // Start duration timer
-      recordingTimer.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
+    recording.current = newRecording;
+    setIsRecording(true);
+    setRecordingDuration(0);
 
-      // Animate microphone
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(microphoneScale, {
-            toValue: 1.2,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(microphoneScale, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
+    recordingTimer.current = setInterval(() => {
+      setRecordingDuration(prev => prev + 1);
+    }, 1000);
 
-      // Slide animation
-      Animated.timing(slideAnimation, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(microphoneScale, {
+          toValue: 1.2,
+          duration: 500,
+          useNativeDriver: true
+        }),
+        Animated.timing(microphoneScale, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true
+        })
+      ])
+    ).start();
 
-    } catch (error) {
-      console.error('Failed to start recording:', error);
-      Alert.alert('Error', 'Failed to start recording. Please try again.');
-    }
+    Animated.timing(slideAnimation, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true
+    }).start();
   };
 
-  // Stop and send voice recording
   const stopAndSendRecording = async () => {
-    try {
-      if (!recording.current) return;
+    if (!recording.current) return;
 
-      setIsRecording(false);
-      clearInterval(recordingTimer.current);
+    setIsRecording(false);
+    clearInterval(recordingTimer.current);
+    await recording.current.stopAndUnloadAsync();
 
-      await recording.current.stopAndUnloadAsync();
-      const uri = recording.current.getURI();
+    const uri = recording.current.getURI();
 
-      if (uri && recordingDuration >= 1) {
-        const voiceMessage = {
-          name: `voice_${Date.now()}.m4a`,
-          type: 'voice',
+    if (uri && recordingDuration >= 1) {
+      await sendFileGlobal({
+        file: {
           uri,
-          duration: recordingDuration,
-          fileType: 'audio/m4a',
-        };
-        onFileSend(voiceMessage);
-      }
-
-      // Reset animations
-      microphoneScale.setValue(1);
-      Animated.timing(slideAnimation, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-
-      recording.current = null;
-      setRecordingDuration(0);
-
-    } catch (error) {
-      console.error('Failed to stop recording:', error);
-      Alert.alert('Error', 'Failed to save recording. Please try again.');
+          name: `voice_${Date.now()}.m4a`,
+          type: "audio/m4a"
+        },
+        connectionId
+      });
     }
+
+    recording.current = null;
+    setRecordingDuration(0);
+    microphoneScale.setValue(1);
+    Animated.timing(slideAnimation, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true
+    }).start();
   };
 
-  // Cancel recording
   const cancelRecording = async () => {
-    try {
-      if (recording.current) {
-        await recording.current.stopAndUnloadAsync();
-        recording.current = null;
-      }
-      setIsRecording(false);
-      setRecordingDuration(0);
-      clearInterval(recordingTimer.current);
-
-      // Reset animations
-      microphoneScale.setValue(1);
-      Animated.timing(slideAnimation, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    } catch (error) {
-      console.error('Failed to cancel recording:', error);
+    if (recording.current) {
+      await recording.current.stopAndUnloadAsync();
     }
+    setIsRecording(false);
+    setRecordingDuration(0);
+    clearInterval(recordingTimer.current);
+    microphoneScale.setValue(1);
+    Animated.timing(slideAnimation, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true
+    }).start();
   };
 
-  // Pan responder for voice recording
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
-
-    onPanResponderGrant: () => {
-      startRecording();
-    },
-
+    onPanResponderGrant: startRecording,
     onPanResponderMove: (evt, gestureState) => {
-      // Cancel if moved too far up
-      if (gestureState.dy < -50) {
-        cancelRecording();
-      }
+      if (gestureState.dy < -50) cancelRecording();
     },
-
     onPanResponderRelease: (evt, gestureState) => {
-      if (gestureState.dy < -50) {
-        // Already cancelled
-        return;
-      }
-      stopAndSendRecording();
+      if (gestureState.dy >= -50) stopAndSendRecording();
     },
   });
 
-  // File selection functions
-  const selectImage = async () => {
-    setShowAttachmentModal(false);
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission required', 'Media library access is required to select images.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 1,
-      base64: false,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      await processImageFile(result.assets[0]);
-    }
-  };
-
-
-
-  const selectVideo = async () => {
-    setShowAttachmentModal(false);
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission required', 'Media library access is required to select videos.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      allowsEditing: false,
-      quality: 1,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      await processVideoFile(result.assets[0])
-      const asset = result.assets[0];
-      const fileName = asset.fileName || asset.uri.split('/').pop();
-      setSelectedFile({
-        name: fileName,
-        type: 'video',
-        uri: asset.uri,
-        fileType: asset.type || 'video/mp4',
-      });
-      setShowPreview(true);
-    }
-  };
-
-  const selectDocument = async () => {
-    setShowAttachmentModal(false);
+  const pickFile = async (type) => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
-        copyToCacheDirectory: true,
-      });
-
-      // DocumentPicker returns { type: 'success'|'cancel', name, uri, size, mimeType }
-      if (result.type === 'success') {
-        await processDocumentFile(result);
-        setSelectedFile({
-          name: result.name,
-          type: 'document',
-          uri: result.uri,
-          fileType: result.mimeType || 'application/octet-stream',
-          size: result.size,
-        });
-        setShowPreview(true);
-      }
-    } catch (error) {
-      console.error('Document selection error:', error);
-      Alert.alert('Error', 'Failed to select document. Please try again.');
-    }
-  };
-
-  const processImageFile = async (asset) => {
-    try {
-      const manipResult = await ImageManipulator.manipulateAsync(
-        asset.uri,
-        [{ resize: { width: Math.min(asset.width || 1024, 1024) } }],
-        {
-          compress: 0.75,
-          format: ImageManipulator.SaveFormat.JPEG,
-          base64: true,
+      if (type === "image" || type === "video") {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission required", "Media library access is required.");
+          return;
         }
-      );
 
-      const fileName = asset.fileName || asset.uri.split('/').pop();
-      setSelectedFile({
-        name: fileName,
-        type: 'image',
-        uri: manipResult.uri,
-        data: manipResult.base64,
-        fileType: 'image/jpeg',
-      });
-      setShowPreview(true);
-    } catch (error) {
-      console.error('Image processing error:', error);
-      const fileName = asset.fileName || asset.uri.split('/').pop();
-      setSelectedFile({
-        name: fileName,
-        type: 'image',
-        uri: asset.uri,
-        fileType: asset.type || 'image',
-      });
-      setShowPreview(true);
-    }
-  };
+        const mediaType = type === "image"
+          ? ImagePicker.MediaTypeOptions.Images
+          : ImagePicker.MediaTypeOptions.Videos;
 
+        const picker = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: mediaType
+        });
 
+        if (picker.canceled || !picker.assets[0]) return;
 
-  const processVideoFile = async (asset) => {
-    try {
-      const fileName = asset.fileName || asset.uri.split('/').pop();
-      setSelectedFile({
-        name: fileName,
-        type: 'video',
-        uri: asset.uri,          // 👈 sirf URI bhejo
-        fileType: 'video/mp4',
-      });
-      setShowPreview(true);
-    } catch (err) {
-      console.error('Video processing error:', err);
-    }
-  };
+        const asset = picker.assets[0];
 
-  const processDocumentFile = async (doc) => {
-    try {
-      setSelectedFile({
-        name: doc.name,
-        type: 'document',
-        uri: doc.uri,            // 👈 sirf URI bhejo
-        fileType: doc.mimeType || 'application/octet-stream',
-        size: doc.size,
-      });
+        if (type === "image") {
+          const manipulated = await ImageManipulator.manipulateAsync(
+            asset.uri,
+            [{ resize: { width: 1024 } }],
+            { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG }
+          );
+          setSelectedFile({
+            uri: manipulated.uri,
+            name: asset.fileName || manipulated.uri.split("/").pop(),
+            type: "image/jpeg"
+          });
+        } else {
+          setSelectedFile({
+            uri: asset.uri,
+            name: asset.fileName || asset.uri.split("/").pop(),
+            type: "video/mp4"
+          });
+        }
+      } else if (type === "document") {
+        const doc = await DocumentPicker.getDocumentAsync({
+          type: "*/*",
+          copyToCacheDirectory: true
+        });
+
+        if (doc.type !== "success") return;
+
+        setSelectedFile({
+          uri: doc.uri,
+          name: doc.name,
+          type: doc.mimeType || "application/octet-stream",
+          size: doc.size
+        });
+      }
+
+      setShowAttachmentModal(false);
       setShowPreview(true);
     } catch (err) {
-      console.error('Document processing error:', err);
+      console.error("File selection error:", err);
+      Alert.alert("Error", "Failed to select file. Please try again.");
     }
   };
 
+  const sendSelectedFile = async () => {
+    if (!selectedFile) return;
 
-  const sendFile = () => {
-    if (selectedFile) {
-      onFileSend(selectedFile);
-      setSelectedFile(null);
-      setShowPreview(false);
-    }
+    await sendFileGlobal({
+      file: selectedFile,
+      connectionId
+    });
+
+    setSelectedFile(null);
+    setShowPreview(false);
   };
 
   const cancelFileSelection = () => {
     setSelectedFile(null);
     setShowPreview(false);
-  };
-
-  const formatDuration = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const canSend = message.trim().length > 0;
@@ -390,8 +264,6 @@ function MessageInput({
         shadowRadius: 12,
         elevation: 8,
       }}>
-
-        {/* Attachment Button */}
         <TouchableOpacity
           onPress={() => setShowAttachmentModal(true)}
           style={{
@@ -407,7 +279,6 @@ function MessageInput({
           <FontAwesomeIcon icon={faFile} size={18} color={theme.colors.primary} />
         </TouchableOpacity>
 
-        {/* Text Input */}
         <View style={{
           flex: 1,
           backgroundColor: theme.colors.searchBar,
@@ -434,7 +305,6 @@ function MessageInput({
           />
         </View>
 
-        {/* Send/Voice Button */}
         {showVoiceButton ? (
           <Animated.View
             {...panResponder.panHandlers}
@@ -456,16 +326,12 @@ function MessageInput({
               shadowRadius: 4,
               elevation: 3,
             }}>
-              <FontAwesomeIcon
-                icon={faMicrophone}
-                size={16}
-                color="white"
-              />
+              <FontAwesomeIcon icon={faMicrophone} size={16} color="white" />
             </View>
           </Animated.View>
         ) : (
           <TouchableOpacity
-            onPress={onSend}
+            onPress={() => canSend && onSend(message)}
             disabled={!canSend}
             style={{
               width: 40,
@@ -491,7 +357,6 @@ function MessageInput({
           </TouchableOpacity>
         )}
 
-        {/* Recording Indicator */}
         {isRecording && (
           <Animated.View style={{
             position: 'absolute',
@@ -531,7 +396,6 @@ function MessageInput({
         )}
       </View>
 
-      {/* Attachment Modal */}
       <Modal
         visible={showAttachmentModal}
         transparent
@@ -573,9 +437,9 @@ function MessageInput({
 
             <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
               {[
-                { icon: faImage, label: 'Photo', onPress: selectImage, color: '#FF6B6B' },
-                { icon: faVideo, label: 'Video', onPress: selectVideo, color: '#4ECDC4' },
-                { icon: faFileText, label: 'Document', onPress: selectDocument, color: '#45B7D1' },
+                { icon: faImage, label: 'Photo', onPress: () => pickFile('image'), color: '#FF6B6B' },
+                { icon: faVideo, label: 'Video', onPress: () => pickFile('video'), color: '#4ECDC4' },
+                { icon: faFileText, label: 'Document', onPress: () => pickFile('document'), color: '#45B7D1' },
               ].map((item, index) => (
                 <TouchableOpacity
                   key={index}
@@ -627,7 +491,6 @@ function MessageInput({
         </View>
       </Modal>
 
-      {/* File Preview Modal */}
       <Modal
         visible={showPreview}
         transparent
@@ -667,7 +530,7 @@ function MessageInput({
 
             {selectedFile && (
               <View style={{ alignItems: 'center' }}>
-                {selectedFile.type === 'image' ? (
+                {selectedFile.type.startsWith('image') ? (
                   <Image
                     source={{ uri: selectedFile.uri }}
                     style={{
@@ -678,7 +541,7 @@ function MessageInput({
                     }}
                     resizeMode="cover"
                   />
-                ) : selectedFile.type === 'video' ? (
+                ) : selectedFile.type.startsWith('video') ? (
                   <View style={{
                     width: screenWidth - 80,
                     height: 200,
@@ -733,7 +596,7 @@ function MessageInput({
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={sendFile}
+                    onPress={sendSelectedFile}
                     style={{
                       flex: 1,
                       paddingVertical: 12,
@@ -756,5 +619,3 @@ function MessageInput({
 }
 
 export default MessageInput;
-
-

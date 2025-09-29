@@ -1,25 +1,17 @@
 from django.contrib.auth import authenticate
-from django.shortcuts import render
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UserSerializer, SignUpSerializer, ProfileUpdateSerializer
 from rest_framework import status
-from langchain_community.llms import Ollama
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_community.chat_models import ChatOllama
-from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
-from langchain.prompts import PromptTemplate
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chains import create_retrieval_chain
-from langchain.vectorstores import Chroma
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from .models import Connection, Message, User
+from .models import Connection, Message
 from .serializers import MessageSerializer
 from .consumers import ChatConsumer
+from django.conf import settings
+from chat.utils import upload_to_r2, generate_r2_presigned_url
 
 def get_auth_for_user(user):
     tokens = RefreshToken.for_user(user)
@@ -80,87 +72,9 @@ class SignUpView(APIView):
         return Response(user_data)
 
 
-class LangchainAPI(APIView):
-    def post(self, request):
-        # Get the input query from the request body
-        input_text = request.data.get("question")
-
-        if not input_text:
-            return Response(
-                {"error": "No question provided"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Langchain Prompt Template and Model
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    "You are a helpful assistant. Please respond to the user queries",
-                ),
-                ("user", "Question:{question}"),
-            ]
-        )
-
-        llm = Ollama(model="llama3.2")
-        output_parser = StrOutputParser()
-        chain = prompt | llm | output_parser
-
-        # Generate the response using Langchain
-        response = chain.invoke({"question": input_text})
-
-        return Response({"answer": response}, status=status.HTTP_200_OK)
 
 
-class AskAPIView(APIView):
-    def post(self, request):
-        query = request.data.get("query", "")
-        if not query:
-            return Response(
-                {"error": "Query parameter is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
-        try:
-            # Define the RAG chain
-            def rag_chain():
-                model = ChatOllama(model="llama3.2")
-                prompt = PromptTemplate.from_template(
-                    """
-                    <s> [Instructions] You are a friendly assistant. Answer the question based only on the following context. 
-                    If you don't know the answer, then reply, No Context available for this question {input}. [/Instructions] </s> 
-                    [Instructions] Question: {input} 
-                    Context: {context} 
-                    Answer: [/Instructions]
-                    """
-                )
-                embedding = FastEmbedEmbeddings()
-                vector_store = Chroma(
-                    persist_directory="./sql_chroma_db", embedding_function=embedding
-                )
-                retriever = vector_store.as_retriever(
-                    search_type="similarity_score_threshold",
-                    search_kwargs={
-                        "k": 3,
-                        "score_threshold": 0.5,
-                    },
-                )
-                document_chain = create_stuff_documents_chain(model, prompt)
-                chain = create_retrieval_chain(retriever, document_chain)
-                return chain
-
-            # Execute the chain
-            chain = rag_chain()
-            result = chain.invoke({"input": query})
-            answer = result["answer"]
-            sources = [{"source": doc.metadata["source"]} for doc in result["context"]]
-
-            return Response(
-                {"answer": answer, "sources": sources}, status=status.HTTP_200_OK
-            )
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
 
 class ProfileAPIView(APIView):
@@ -196,11 +110,16 @@ class ProfileAPIView(APIView):
 
         try:
             with transaction.atomic():
-                # handle thumbnail (file upload)
                 thumbnail_file = request.FILES.get('thumbnail')
                 if thumbnail_file:
-                    # assign file directly to user's ImageField
-                    user.thumbnail.save(thumbnail_file.name, thumbnail_file, save=False)
+                    # Try upload to R2 if configured, otherwise fall back to default storage.save()
+                    from chat.utils import upload_to_r2
+                    r2_url = upload_to_r2(thumbnail_file, prefix="thumbnails/")
+                    if r2_url:
+                        # store the external URL string in the field name (serializer will handle returning it)
+                        user.thumbnail = r2_url
+                    else:
+                        user.thumbnail.save(thumbnail_file.name, thumbnail_file, save=False)
 
                 # basic name fields
                 if 'first_name' in data:
@@ -237,56 +156,89 @@ class ProfileAPIView(APIView):
         return Response(out.data, status=status.HTTP_200_OK)
 
 
+
+ 
+#isko test krna hy..... 
 class MessageUploadView(APIView):
     permission_classes = [IsAuthenticated]
+    
 
     def post(self, request, *args, **kwargs):
         user = request.user
         connection_id = request.data.get("connectionId")
         text = request.data.get("text", "")
 
+        if not connection_id:
+            return Response({"error": "connectionId is required"}, status=400)
+
         connection = get_object_or_404(Connection, id=connection_id)
 
-        file = request.FILES.get("file")  # multipart file
-        if not file and not text:
-            return Response(
-                {"error": "Either file or text is required"},
-                status=status.HTTP_400_BAD_REQUEST,
+        file = request.FILES.get("file")  # multipart upload
+        if not file and not text.strip():
+            return Response({"error": "Either file or text is required"}, status=400)
+
+        max_size_mb = 10
+        if file and file.size > max_size_mb * 1024 * 1024:
+            return Response({"error": f"File too large. Max {max_size_mb}MB allowed"}, status=400)
+
+        file_key = None
+        mime_type = None
+        size = None
+        r2_url = None
+        
+        try:
+            if file:
+                r2_url = upload_to_r2(file, prefix="messages_media/")
+                # Set fields for serializer
+                file_key = r2_url.replace(f"{settings.AWS_S3_BASE_URL}/", "")
+                mime_type = file.content_type
+                size = file.size
+        except Exception:
+            r2_url = None
+
+        if r2_url:
+
+            message = Message.objects.create(
+                connection=connection,
+                user=user,
+                text=text,
+                file_key=file_key,
+                presigned_file_url = generate_r2_presigned_url(file_key) if file_key else None,
+                mime_type=mime_type,
+                size=size,
             )
+            print("Uploaded to R2, stored URL in FileField:", r2_url)
+        else:
+            # fallback to default storage
+            message = Message.objects.create(
+                connection=connection,
+                user=user,
+                text=text,
+                file=file if file else None,
+                file_key=file.name if file else None,
+                presigned_file_url = generate_r2_presigned_url(file.name) if file else None,
+                mime_type=file.content_type if file else None,
+                size=file.size if file else None,
+            )
+            print("Uploaded to DB:", file.name if file else None)
+            print("r2_url:", r2_url)
 
-        # Save message
-        message = Message.objects.create(
-            connection=connection,
-            user=user,
-            text=text,
-            file=file,
-        )
-
-        # Recipient = opposite user
         recipient = connection.sender if connection.sender != user else connection.receiver
 
-        # Serialize for sender
-        serialized_message_sender = MessageSerializer(
-            message, context={"user": user, "request": request}
-        )
-        serialized_friend_sender = {"id": recipient.id, "username": recipient.username}
-
+        # Sender event
+        serialized_message_sender = MessageSerializer(message, context={"user": user, "request": request})
         data_sender = {
             "message": serialized_message_sender.data,
-            "friend": serialized_friend_sender,
+            "friend": {"id": recipient.id, "username": recipient.username},
         }
         ChatConsumer.send_group(user.username, "message.send", data_sender)
 
-        # Serialize for recipient
-        serialized_message_recipient = MessageSerializer(
-            message, context={"user": recipient, "request": request}
-        )
-        serialized_friend_recipient = {"id": user.id, "username": user.username}
-
+        # Recipient event
+        serialized_message_recipient = MessageSerializer(message, context={"user": recipient, "request": request})
         data_recipient = {
             "message": serialized_message_recipient.data,
-            "friend": serialized_friend_recipient,
+            "friend": {"id": user.id, "username": user.username},
         }
         ChatConsumer.send_group(recipient.username, "message.send", data_recipient)
 
-        return Response(serialized_message_sender.data, status=status.HTTP_201_CREATED)
+        return Response(serialized_message_sender.data, status=201)

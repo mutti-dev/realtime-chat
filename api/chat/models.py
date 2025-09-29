@@ -49,27 +49,40 @@ class Connection(models.Model):
 
 
 class Message(models.Model):
-	connection = models.ForeignKey(
-		Connection,
-		related_name='messages',
-		on_delete=models.CASCADE,
-		
-	)
-	user = models.ForeignKey(
-		User,
-		related_name='my_messages',
-		on_delete=models.CASCADE
-	)
-	# allow messages that only contain a file (text optional)
-	text = models.TextField(blank=True, default='')
-	created = models.DateTimeField(auto_now_add=True)
-	file = models.FileField(upload_to='messages/files/', blank=True, null=True)
-	is_ai = models.BooleanField(default=False) 
+    connection = models.ForeignKey(
+        Connection,
+        related_name="messages",
+        on_delete=models.CASCADE,
+    )
+    user = models.ForeignKey(
+        User,
+        related_name="my_messages",
+        on_delete=models.CASCADE,
+    )
+    text = models.TextField(blank=True, default="")
+    created = models.DateTimeField(auto_now_add=True)
+    file = models.FileField(upload_to="messages/files/", blank=True, null=True)
+    presigned_file_url = models.CharField(max_length=100, blank=True, null=True) 
+    file_key = models.CharField(max_length=500, blank=True, null=True)   
+    mime_type = models.CharField(max_length=100, blank=True, null=True)  
+    size = models.PositiveIntegerField(blank=True, null=True)            
+    status = models.CharField(                                         
+        max_length=20,
+        choices=(
+            ("sent", "Sent"),
+            ("delivered", "Delivered"),
+            ("read", "Read"),
+        ),
+        default="sent",
+    )
+    is_ai = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.user.username}: {self.text[:30]}"
 
 
 
-	def __str__(self):
-		return self.user.username + ': ' + self.text
+
 	
 
 class AiMessage(models.Model):

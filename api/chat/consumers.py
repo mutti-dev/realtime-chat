@@ -12,6 +12,7 @@ from channels.generic.websocket import WebsocketConsumer
 from django.core.files.base import ContentFile
 from django.db.models import Q, Exists, OuterRef
 from django.db.models.functions import Coalesce
+from channels.layers import get_channel_layer
 
 from .models import User, Connection, Message, AiMessage
 
@@ -23,31 +24,18 @@ from .serializers import (
     MessageSerializer,
 )
 
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_community.llms import Ollama
-import streamlit as st
-from langchain_community.vectorstores import Chroma
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.chat_models import ChatOllama
-from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.prompts import PromptTemplate
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chains import create_retrieval_chain
+
 import sys
 from PIL import Image
-
 
 
 class ChatConsumer(WebsocketConsumer):
 
     # New file / image limits (adjust as needed)
-    MAX_THUMBNAIL_BYTES = 2 * 1024 * 1024      # 2 MB for profile thumbnails
-    MAX_IMAGE_BYTES = 8 * 1024 * 1024          # 8 MB for chat images
-    MAX_VIDEO_BYTES = 10 * 1024 * 1024         # 10 MB for video files
-    MAX_IMAGE_WIDTH = 1280                     # max width to resize images to
+    MAX_THUMBNAIL_BYTES = 2 * 1024 * 1024  # 2 MB for profile thumbnails
+    MAX_IMAGE_BYTES = 8 * 1024 * 1024  # 8 MB for chat images
+    MAX_VIDEO_BYTES = 10 * 1024 * 1024  # 10 MB for video files
+    MAX_IMAGE_WIDTH = 1280  # max width to resize images to
 
     def connect(self):
         user = self.scope["user"]
@@ -124,87 +112,12 @@ class ChatConsumer(WebsocketConsumer):
         elif data_source == "thumbnail":
             self.receive_thumbnail(data)
 
-        elif data_source == "file":
-            self.receive_file(data)
-
-        elif data_source == "ai.query":
-            self.receive_ai_query(data)
-
         # new: user profile/settings update
         elif data_source == "user.update":
             self.receive_user_update(data)
 
-    def process_ai_query(self, question):
-        try:
-            # Initialize Langchain components
-            prompt = ChatPromptTemplate.from_messages(
-                [
-                    (
-                        "system",
-                        "You are a anngry assistant.Your name is Mutti. Respond to user queries.",
-                    ),
-                    ("user", f"Question: {question}"),
-                ]
-            )
-            llm = Ollama(model="llama3.2")
-            output_parser = StrOutputParser()
-            # Load vector store
-            # embedding = FastEmbedEmbeddings()
-            # vector_store = Chroma(persist_directory="./sql_chroma_db", embedding_function=embedding)
-            # Build the chain
-            chain = prompt | llm | output_parser
-
-            # Generate a response
-            response = chain.invoke({"question": question})
-            print("Response", response)
-            user = self.scope["user"]
-            AiMessage.objects.create(
-                user=user,  # Assign the user who triggered the query
-                ai_res=response,  # Save the AI-generated text
-                user_query=question,  # Mark the message as AI-generated
-            )
-            return response
-        except Exception as e:
-            print(f"Error processing AI query: {e}")
-            return "I'm sorry, there was an error with the AI agent."
-
-    def rag_chain(self):
-        # Use the ChatOllama model
-        model = ChatOllama(model="llama3.2")
-
-        # Define the prompt template
-        prompt = PromptTemplate.from_template(
-            """
-			<s> [Instructions] You are a friendly assistant. Answer the question based only on the following context. 
-			If you don't know the answer, then reply, No Context available for this question {input}. [/Instructions] </s> 
-			[Instructions] Question: {input} 
-			Context: {context} 
-			Answer: [/Instructions]
-			"""
-        )
-
-        # Load the vector store (Chroma) for document retrieval
-        embedding = FastEmbedEmbeddings()
-        vector_store = Chroma(
-            persist_directory="./sql_chroma_db", embedding_function=embedding
-        )
-
-        # Create the retriever for similarity-based search
-        retriever = vector_store.as_retriever(
-            search_type="similarity_score_threshold",
-            search_kwargs={
-                "k": 3,
-                "score_threshold": 0.5,
-            },
-        )
-
-        # Create a document chain that generates answers based on retrieved context
-        document_chain = create_stuff_documents_chain(model, prompt)
-
-        # Create the final retrieval chain that combines the retriever and the document chain
-        chain = create_retrieval_chain(retriever, document_chain)
-
-        return chain
+        else:
+            self.send(text_data=json.dumps({"error": "Invalid source"}))
 
     def receive_friend_list(self, data):
         user = self.scope["user"]
@@ -224,24 +137,6 @@ class ChatConsumer(WebsocketConsumer):
         serialized = FriendSerializer(connections, context={"user": user}, many=True)
         # Send data back to requesting user
         self.send_group(user.username, "friend.list", serialized.data)
-
-    def receive_ai_query(self, data):
-        user = self.scope["user"]
-        question = data.get("message")
-
-        if not question:
-            print("Error: No question provided for AI agent here.")
-            return
-
-            # Process the AI response
-        ai_response = self.process_ai_query(question)
-
-        # Broadcast AI response back to the group
-        response_data = {
-            "username": "AI Agent",  # Static AI agent identity
-            "message": ai_response,
-        }
-        self.send_group(user.username, "ai.response", response_data)
 
     def receive_message_list(self, data):
         user = self.scope["user"]
@@ -282,18 +177,11 @@ class ChatConsumer(WebsocketConsumer):
         # Send back to the requestor
         self.send_group(user.username, "message.list", data)
 
-
-
-
-
     def receive_message_send(self, data):
         user = self.scope["user"]
         connectionId = data.get("connectionId")
         message_text = data.get("message")
         client_temp_id = data.get("clientTempId")
-
-        file_data = message_text.get("file") if isinstance(message_text, dict) else None
-        print("file data", file_data)
 
         try:
             connection = Connection.objects.get(id=connectionId)
@@ -301,76 +189,17 @@ class ChatConsumer(WebsocketConsumer):
             print("Error: couldn't find connection")
             return
 
-        if file_data:
-            filename, raw_bytes, mime_hint = self._decode_base64_field(file_data)
-            if raw_bytes:
-                # detect type
-                is_image = False
-                try:
-                    img_type = imghdr.what(None, raw_bytes)
-                    if img_type:
-                        is_image = True
-                    else:
-                        is_image = False
-                except Exception:
-                    pass
+        # ✅ Only text messages allowed here (no file saving)
+        message = Message.objects.create(
+            connection=connection,
+            user=user,
+            text=message_text if isinstance(message_text, str) else "",
+        )
 
-                # try mime detection (fallback for docs/videos)
-                guessed_type, _ = mimetypes.guess_type(filename or "")
-                mime_type = mime_hint or guessed_type or "application/octet-stream"
-                print("MIME type detected:", mime_type)
-
-                if is_image:
-                    if len(raw_bytes) > self.MAX_IMAGE_BYTES:
-                        print("Image too large, rejecting")
-                        return
-                    processed = self._process_image_bytes(
-                        raw_bytes, max_width=self.MAX_IMAGE_WIDTH, quality=80
-                    )
-                    if not processed:
-                        return
-                    safe_name = self._safe_filename(filename)
-                    file_content = ContentFile(processed, name=safe_name)
-
-                elif mime_type.startswith("video/"):
-                    print("Detected video file")
-                    if len(raw_bytes) > self.MAX_VIDEO_BYTES:
-                        print("Video too large, rejecting")
-                        return
-                    safe_name = self._safe_filename(filename)
-                    file_content = ContentFile(raw_bytes, name=safe_name)
-                    print("Video file accepted", file_content)
-
-                elif mime_type.startswith("application/") or mime_type.startswith("text/"):
-                    # document types (PDF, DOC, TXT, etc.)
-                    if len(raw_bytes) > self.MAX_DOC_BYTES:
-                        print("Document too large, rejecting")
-                        return
-                    safe_name = self._safe_filename(filename)
-                    file_content = ContentFile(raw_bytes, name=safe_name)
-
-                else:
-                    print("Unsupported file type:", mime_type)
-                    return
-
-                message = Message.objects.create(
-                    connection=connection, user=user, file=file_content
-                )
-            else:
-                message = Message.objects.create(
-                    connection=connection,
-                    user=user,
-                    text=message_text if isinstance(message_text, str) else "",
-                )
-        else:
-            message = Message.objects.create(
-                connection=connection,
-                user=user,
-                text=message_text if isinstance(message_text, str) else "",
-            )
-
-        # send to both users (same as your existing code)
-        recipient = connection.sender if connection.sender != user else connection.receiver
+        # send to both users
+        recipient = (
+            connection.sender if connection.sender != user else connection.receiver
+        )
 
         serialized_message = MessageSerializer(message, context={"user": user})
         serialized_friend = UserSerializer(recipient)
@@ -496,148 +325,6 @@ class ChatConsumer(WebsocketConsumer):
         # Send search results back to this user
         self.send_group(self.username, "search", serialized.data)
 
-    def _safe_filename(self, original):
-        name = os.path.basename(original or '')
-        if not name:
-            name = str(uuid.uuid4())
-        # ensure extension present
-        base, ext = os.path.splitext(name)
-        if not ext:
-            ext = '.jpg'
-        return f"{uuid.uuid4().hex}{ext}"
-
-    def _process_image_bytes(self, image_bytes, max_width=None, quality=85):
-        """
-        Open image from bytes, resize if wider than max_width and re-encode as JPEG.
-        Return bytes.
-        """
-        try:
-            with Image.open(io.BytesIO(image_bytes)) as img:
-                img_format = 'JPEG'
-                # Convert PNG/transparency to RGB background for JPEG
-                if img.mode in ("RGBA", "P"):
-                    bg = Image.new("RGB", img.size, (255, 255, 255))
-                    bg.paste(img, mask=img.split()[3] if img.mode == "RGBA" else None)
-                    img = bg
-                if max_width and img.width > max_width:
-                    wpercent = (max_width / float(img.width))
-                    hsize = int((float(img.height) * float(wpercent)))
-                    img = img.resize((max_width, hsize), Image.LANCZOS)
-                out = io.BytesIO()
-                img.save(out, format=img_format, quality=quality, optimize=True)
-                return out.getvalue()
-        except Exception as e:
-            print("Image processing failed:", e)
-            return None
-
-    def _decode_base64_field(self, data_dict):
-        """
-        Accepts different payload shapes. Returns tuple (filename, bytes, mime_hint)
-        """
-        if not data_dict:
-            return (None, None, None)
-        # support both 'base64' and 'data' keys (client earlier used 'data' for base64)
-        b64 = data_dict.get('base64') or data_dict.get('data')
-        if not b64:
-            return (data_dict.get('name') or data_dict.get('filename'), None, None)
-        # strip data URI prefix if present
-        if isinstance(b64, str) and b64.startswith('data:'):
-            try:
-                header, b64 = b64.split(',', 1)
-            except Exception:
-                pass
-        try:
-            raw = base64.b64decode(b64)
-        except Exception as e:
-            print("Base64 decode error:", e)
-            return (data_dict.get('name') or data_dict.get('filename'), None, None)
-        filename = data_dict.get('name') or data_dict.get('filename') or f"{uuid.uuid4().hex}"
-        mime_hint = data_dict.get('type') or None
-        return (filename, raw, mime_hint)
-
-    def receive_thumbnail(self, data):
-        user = self.scope["user"]
-        # Normalize incoming payload
-        filename, raw_bytes, mime_hint = self._decode_base64_field(data)
-        if raw_bytes is None:
-            print("No thumbnail data received")
-
-        # process / resize image
-        processed = self._process_image_bytes(raw_bytes, max_width=512, quality=80)
-        if processed is None:
-            print("Failed processing thumbnail")
-            return
-
-        safe_name = self._safe_filename(filename)
-        content = ContentFile(processed, name=safe_name)
-        user.thumbnail.save(safe_name, content, save=True)
-
-        serialized = UserSerializer(user)
-        self.send_group(self.username, "thumbnail", serialized.data)
-
-
-        
-
-    def receive_file(self, data):  # generic file upload via socket (keep but validate)
-        user = self.scope["user"]
-        connection_id = data.get("connectionId")
-        filename, raw_bytes, mime_hint = self._decode_base64_field(data)
-        if raw_bytes is None:
-            print("No file bytes found")
-            return
-
-        # validate connection
-        try:
-            connection = Connection.objects.get(id=connection_id)
-        except Connection.DoesNotExist:
-            print("Error: Connection not found")
-            return
-
-        # determine file type
-        # try image magic
-        ext = os.path.splitext(filename)[1].lower()
-        is_image = False
-        try:
-            img_type = imghdr.what(None, raw_bytes)
-            if img_type:
-                is_image = True
-        except Exception:
-            is_image = False
-
-        if is_image:
-            if len(raw_bytes) > self.MAX_IMAGE_BYTES:
-                print("Image too large, rejecting")
-                return
-            processed = self._process_image_bytes(raw_bytes, max_width=self.MAX_IMAGE_WIDTH, quality=80)
-            if processed is None:
-                print("Failed processing image")
-                return
-            safe_name = self._safe_filename(filename)
-            file_obj = ContentFile(processed, name=safe_name)
-        else:
-            # treat as generic file / video - enforce size limit
-            if len(raw_bytes) > self.MAX_VIDEO_BYTES:
-                print("File too large, rejecting")
-                return
-            safe_name = self._safe_filename(filename)
-            file_obj = ContentFile(raw_bytes, name=safe_name)
-
-        # Save the message with the file
-        try:
-            message = Message.objects.create(connection=connection, user=user, file=file_obj)
-        except Exception as e:
-            print("Error saving message with file:", e)
-            return
-
-        # notify sender
-        serialized_message = MessageSerializer(message, context={"user": user})
-        self.send_group(user.username, "message.send", serialized_message.data)
-
-        # notify recipient
-        recipient = connection.sender if connection.sender != user else connection.receiver
-        serialized_message = MessageSerializer(message, context={"user": recipient})
-        self.send_group(recipient.username, "message.send", serialized_message.data)
-
     # helper to send a group event via channel layer
     def send_group(self, group, source, data):
         response = {"type": "broadcast_group", "source": source, "data": data}
@@ -754,3 +441,22 @@ class ChatConsumer(WebsocketConsumer):
                 self.send_group(friend.username, "user.update", serialized.data)
         except Exception as e:
             print("Error broadcasting user update to friends:", e)
+
+    # ----------------------------
+    #      class methods
+    # ----------------------------
+
+    # @classmethod
+    # def receive_message_type(cls, user, recipient_username):
+    #     """
+    #     user: User instance (sender)
+    #     recipient_username: str, username of recipient
+    #     """
+    #     data = {"username": user.username}
+    #     cls.send_group(recipient_username, "message.type", data)
+
+    @classmethod
+    def send_group(cls, group, source, data):
+        response = {"type": "broadcast_group", "source": source, "data": data}
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(group, response)

@@ -1,145 +1,134 @@
 import mimetypes
 from rest_framework import serializers
 from .models import User, Connection, Message
+from django.conf import settings
 
 
 
 class SignUpSerializer(serializers.ModelSerializer):
-	class Meta:
-		model = User
-		fields = [
-			'username',
-			'first_name',
-			'last_name',
-			'password'
-		]
-		extra_kwargs = {
-			'password': {
-				# Ensures that when serializing, this field will be excluded
-				'write_only': True
-			}
-		}
+    class Meta:
+        model = User
+        fields = [
+            'username',
+            'first_name',
+            'last_name',
+            'password'
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
 
-	def create(self, validated_data):
-		# Clean all values, set as lowercase
-		username   = validated_data['username'].lower()
-		first_name = validated_data['first_name'].lower()
-		last_name  = validated_data['last_name'].lower()
-		# Create new user
-		user = User.objects.create(
-			username=username,
-			first_name=first_name,
-			last_name=last_name
-		)
-		password = validated_data['password']
-		user.set_password(password)
-		user.save()
-		return user
+    def create(self, validated_data):
+        username = validated_data['username'].lower()
+        first_name = validated_data['first_name'].lower()
+        last_name = validated_data['last_name'].lower()
+        user = User.objects.create(
+            username=username,
+            first_name=first_name,
+            last_name=last_name
+        )
+        password = validated_data['password']
+        user.set_password(password)
+        user.save()
+        return user
 
 
 class UserSerializer(serializers.ModelSerializer):
-	name = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
 
-	class Meta:
-		model = User
-		fields = [
-			'id',
-			'username',
-			'name',
-			'thumbnail',
-			'is_online',
-			'last_online',
-			'is_admin',
-			# new fields exposed to client
-			'theme',
-			'notifications_enabled',
-			'settings',
-		]
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'name',
+            'thumbnail',
+            'is_online',
+            'last_online',
+            'is_admin',
+            'theme',
+            'notifications_enabled',
+            'settings',
+        ]
 
-	def get_name(self, obj):
-		fname = (obj.first_name or '').capitalize()
-		lname = (obj.last_name or '').capitalize()
-		return (fname + ' ' + lname).strip()
+    def get_name(self, obj):
+        fname = (obj.first_name or '').capitalize()
+        lname = (obj.last_name or '').capitalize()
+        return (fname + ' ' + lname).strip()
+
+    def get_thumbnail(self, obj):
+        val = getattr(obj, "thumbnail", None)
+        request = self.context.get("request")
+        try:
+            if hasattr(val, "url"):
+                return request.build_absolute_uri(val.url) if request else val.url
+            if isinstance(val, str) and (val.startswith("http://") or val.startswith("https://")):
+                return val
+        except Exception:
+            pass
+        return None
+
 
 class SearchSerializer(UserSerializer):
-	status = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
 
-	class Meta:
-		model = User
-		fields = [
-			'username',
-			'name',
-			'thumbnail',
-			'status'
-		]
-	
-	def get_status(self, obj):
-		if obj.pending_them:
-			return 'pending-them'
-		elif obj.pending_me:
-			return 'pending-me'
-		elif obj.connected:
-			return 'connected'
-		return 'no-connection'
+    class Meta:
+        model = User
+        fields = [
+            'username',
+            'name',
+            'thumbnail',
+            'status'
+        ]
+
+    def get_status(self, obj):
+        if getattr(obj, "pending_them", False):
+            return 'pending-them'
+        elif getattr(obj, "pending_me", False):
+            return 'pending-me'
+        elif getattr(obj, "connected", False):
+            return 'connected'
+        return 'no-connection'
 
 
 class RequestSerializer(serializers.ModelSerializer):
-	sender = UserSerializer()
-	receiver = UserSerializer()
+    sender = UserSerializer()
+    receiver = UserSerializer()
 
-	class Meta:
-		model = Connection
-		fields = [
-			'id',
-			'sender',
-			'receiver',
-			'created'
-		]
+    class Meta:
+        model = Connection
+        fields = ['id', 'sender', 'receiver', 'created']
 
 
 class FriendSerializer(serializers.ModelSerializer):
-	friend = serializers.SerializerMethodField()
-	preview = serializers.SerializerMethodField()
-	updated = serializers.SerializerMethodField()
-	
-	class Meta:
-		model = Connection
-		fields = [
-			'id',
-			'friend',
-			'preview',
-			'updated'
-		]
+    friend = serializers.SerializerMethodField()
+    preview = serializers.SerializerMethodField()
+    updated = serializers.SerializerMethodField()
 
-	def get_friend(self, obj):
-		# If Im the sender
-		if self.context['user'] == obj.sender:
-			return UserSerializer(obj.receiver).data
-		# If Im the receiver
-		elif self.context['user'] == obj.receiver:
-			return UserSerializer(obj.sender).data
-		else:
-			print('Error: No user found in friendserializer')
+    class Meta:
+        model = Connection
+        fields = ['id', 'friend', 'preview', 'updated']
 
-	def get_preview(self, obj):
-		default = 'New connection'
-		if not hasattr(obj, 'latest_text'):
-			return default
-		return obj.latest_text or default
+    def get_friend(self, obj):
+        if self.context['user'] == obj.sender:
+            return UserSerializer(obj.receiver, context=self.context).data
+        elif self.context['user'] == obj.receiver:
+            return UserSerializer(obj.sender, context=self.context).data
+        return None
 
-	def get_updated(self, obj):
-		if not hasattr(obj, 'latest_created'):
-			date = obj.updated
-		else:
-			date = obj.latest_created or obj.updated
-		return date.isoformat()
+    def get_preview(self, obj):
+        default = 'New connection'
+        return getattr(obj, 'latest_text', None) or default
 
-
+    def get_updated(self, obj):
+        date = getattr(obj, 'latest_created', None) or obj.updated
+        return date.isoformat()
 
 
 class MessageSerializer(serializers.ModelSerializer):
     is_me = serializers.SerializerMethodField()
-    file_url = serializers.SerializerMethodField()
+    presigned_file_url = serializers.SerializerMethodField()  # New field
     file_type = serializers.SerializerMethodField()
 
     class Meta:
@@ -149,53 +138,58 @@ class MessageSerializer(serializers.ModelSerializer):
             "is_me",
             "text",
             "created",
-            "file",
-            "file_url",
+            "presigned_file_url",
             "file_type",
-            "is_ai",
+            "file_key",
+            "mime_type",
+            "size",
+            "status",
         ]
 
     def get_is_me(self, obj):
         return self.context["user"] == obj.user
 
-    def get_file_url(self, obj):
-        """Return absolute file URL if file is attached"""
-        if obj.file:
-            request = self.context.get("request")
-            if request:
-                return request.build_absolute_uri(obj.file.url)
-            return obj.file.url
-        return None
+    # def get_file_url(self, obj):
+    #     """Return static Cloudflare R2/S3 file URL if file_key exists"""
+    #     if not obj.file_key:
+    #         return None
+    #     return f"{settings.AWS_S3_BASE_URL}/{obj.file_key}"
+
+    def get_presigned_file_url(self, obj):
+        """Return a temporary pre-signed URL if file_key exists"""
+        if not obj.file_key:
+            return None
+        from chat.utils import generate_r2_presigned_url
+        return generate_r2_presigned_url(obj.file_key, expires_in=3600)  # 1 hour expiry
 
     def get_file_type(self, obj):
         """Detect file type (image, video, audio, document)"""
-        if not obj.file:
+        if not obj.file_key:
             return None
-
-        mime_type, _ = mimetypes.guess_type(obj.file.name)
+        mime_type = obj.mime_type or mimetypes.guess_type(obj.file_key)[0]
         if not mime_type:
             return "document"
-
         if mime_type.startswith("image/"):
             return "image"
         elif mime_type.startswith("video/"):
             return "video"
         elif mime_type.startswith("audio/"):
             return "audio"
-        else:
-            return "document"
+        return "document"
+
 
 
 class ProfileUpdateSerializer(serializers.Serializer):
-    # Optional fields for updating profile
     first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
     last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
-    password = serializers.CharField(required=False, write_only=True, allow_blank=False, min_length=6)
-    # settings / preferences
-    theme = serializers.ChoiceField(choices=(('light','Light'),('dark','Dark')), required=False, allow_null=True)
+    password = serializers.CharField(required=False, write_only=True, min_length=6)
+    theme = serializers.ChoiceField(
+        choices=(('light','Light'),('dark','Dark')),
+        required=False,
+        allow_null=True
+    )
     notifications_enabled = serializers.BooleanField(required=False)
     settings = serializers.JSONField(required=False)
 
     def validate(self, attrs):
-        # Add any cross-field validation if required
         return attrs

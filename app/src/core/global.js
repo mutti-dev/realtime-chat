@@ -557,7 +557,10 @@ const useGlobal = create((set, get) => ({
     try {
       const tokens = await secure.get("tokens");
       const authHeaders = tokens
-        ? { Authorization: `Bearer ${tokens.access}`, Accept: "application/json" }
+        ? {
+            Authorization: `Bearer ${tokens.access}`,
+            Accept: "application/json",
+          }
         : { Accept: "application/json" };
 
       const filename =
@@ -581,10 +584,9 @@ const useGlobal = create((set, get) => ({
       let url = baseURL.replace(/\/$/, "") + "/chat/profile/";
       // Android emulator mapping
       if (Platform.OS === "android") {
-        url = url.replace("http://localhost", "http://10.0.2.2").replace(
-          "http://127.0.0.1",
-          "http://10.0.2.2"
-        );
+        url = url
+          .replace("http://localhost", "http://10.0.2.2")
+          .replace("http://127.0.0.1", "http://10.0.2.2");
       }
 
       const resp = await fetch(url, {
@@ -621,76 +623,60 @@ const useGlobal = create((set, get) => ({
       utils.log("uploadThumbnail error", err);
       throw err; // let UI know upload failed
     }
-   },
- 
-   uploadFile: async (file) => {
-    // Accept either a file object or an object { file, connectionId, text }
-    const payload = file || {};
-    const fileObj = payload.file || payload;
-    utils.log("uploadFile payload", payload);
+  },
+
+  sendFile: async ({ file, connectionId, text }) => {
+    if (!file) throw new Error("File is required");
+
     try {
+      // Get tokens if available
       const tokens = await secure.get("tokens");
-      const authHeaders = tokens
-        ? { Authorization: `Bearer ${tokens.access}`, Accept: "application/json" }
-        : { Accept: "application/json" };
+      const headers = tokens
+        ? { Authorization: `Bearer ${tokens.access}` }
+        : {};
 
-      const filename =
-        fileObj?.fileName ||
-        fileObj?.name ||
-        (fileObj?.uri ? fileObj.uri.split("/").pop() : "upload.dat");
-
+      // Prepare filename and type
+      const filename = file.fileName || file.name || file.uri.split("/").pop();
       const fileType =
-        fileObj?.type ||
-        (filename.includes(".") ? mime.getType(filename) : null) ||
-        "application/octet-stream";
+        file.type ||
+        (filename.includes(".")
+          ? mime.getType(filename)
+          : "application/octet-stream");
 
+      // Build FormData
       const form = new FormData();
-      form.append("file", {
-        uri: fileObj.uri,
-        name: filename,
-        type: fileType,
-      });
-      // attach connectionId/text if provided so server can persist & broadcast
-      if (payload.connectionId) form.append("connectionId", String(payload.connectionId));
-      if (payload.text) form.append("text", String(payload.text));
+      form.append("file", { uri: file.uri, name: filename, type: fileType });
+      if (connectionId) form.append("connectionId", String(connectionId));
+      if (text) form.append("text", String(text));
 
-      const baseURL =
-        api && api.defaults && api.defaults.baseURL
-          ? api.defaults.baseURL
-          : `http://${ADDRESS}`;
-      let url = baseURL.replace(/\/$/, "") + "/chat/upload/";
+      // API URL
+      let url = `${api?.defaults?.baseURL || `http://${ADDRESS}`}/chat/upload/`;
       if (Platform.OS === "android") {
-        url = url.replace("http://localhost", "http://10.0.2.2").replace(
-          "http://127.0.0.1",
-          "http://10.0.2.2"
-        );
+        url = url
+          .replace("http://localhost", "http://10.0.2.2")
+          .replace("http://127.0.0.1", "http://10.0.2.2");
       }
 
+      // Send request
       const resp = await fetch(url, {
         method: "POST",
-        headers: {
-          ...authHeaders,
-          // do not set Content-Type; fetch will set correct multipart boundary
-        },
+        headers, // don't set Content-Type; fetch handles it
         body: form,
       });
 
       if (!resp.ok) {
-        const text = await resp.text().catch(() => null);
-        const err = new Error(
-          `upload failed: ${resp.status} ${resp.statusText} ${text || ""}`
+        const text = await resp.text().catch(() => "");
+        throw new Error(
+          `Upload failed: ${resp.status} ${resp.statusText} ${text}`
         );
-        utils.log("uploadFile fetch error", err);
-        throw err;
       }
 
-      const data = await resp.json().catch(() => null);
-      return data;
+      return await resp.json();
     } catch (err) {
-      utils.log("uploadFile error", err);
+      console.error("sendFile error:", err);
       throw err;
     }
-   },
+  },
 
   // Update user fields (name, password) via REST JSON
   updateUser: async (userPayload) => {

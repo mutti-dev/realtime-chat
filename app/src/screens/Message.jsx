@@ -91,6 +91,7 @@ function MessageHeader({ friend }) {
 
 
 function MessageBubbleMe({ text, file, onFilePress, isSending }) {
+	console.log("📂 file in MessageBubbleMe:", file);
 	const theme = useTheme();
 	const openFile = () => { if (!file) return; onFilePress(file); };
 
@@ -339,7 +340,8 @@ function MessageBubble({ index, message, friend }) {
 	const [isSending, setIsSending] = useState(false)
 	const theme = useTheme();
 	// use message.file_url when server provided absolute url, fallback to message.file
-	const fileForMessage = message?.file_url || message?.file || null;
+	const fileForMessage = message?.presigned_file_url || message?.file_url || message?.file || null;
+	
 
 	const messagesTyping = useGlobal(state => state.messagesTyping);
 
@@ -417,6 +419,7 @@ function MessagesScreen({ navigation, route }) {
 	const uploadFile = useGlobal(state => state.uploadFile) // use uploadFile for binary uploads
 
 	const messagesList = useGlobal(state => state.messagesList)
+	console.log("📂 messagesList:", messagesList);
 	const messagesNext = useGlobal(state => state.messagesNext)
 	const messageList = useGlobal(state => state.messageList)
 	const messageSend = useGlobal(state => state.messageSend)
@@ -486,10 +489,10 @@ function MessagesScreen({ navigation, route }) {
 
 				{Platform.OS === 'ios' ? (
 					<InputAccessoryView>
-						<MessageInput message={message} setMessage={onType} onSend={onSend} onFileSend={onFileSend} />
+						<MessageInput message={message} setMessage={onType} onSend={onSend} onFileSend={onFileSend} connectionId={connectionId}/>
 					</InputAccessoryView>
 				) : (
-					<MessageInput message={message} setMessage={onType} onSend={onSend} onFileSend={onFileSend} theme={theme} />
+					<MessageInput message={message} setMessage={onType} onSend={onSend} onFileSend={onFileSend} theme={theme} connectionId={connectionId}/>
 				)}
 			</SafeAreaView>
 		</LinearGradient>

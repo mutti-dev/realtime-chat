@@ -9,8 +9,15 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+
 import os
 from pathlib import Path
+
+try:
+    from decouple import config
+except ImportError:
+
+    config = os.environ.get
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,34 +27,28 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-4j3g5p%*n&%4jmd50$!7yd63_%nm*@qk2k)gafe*35zp=y1k%@'
+SECRET_KEY = "django-insecure-4j3g5p%*n&%4jmd50$!7yd63_%nm*@qk2k)gafe*35zp=y1k%@"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*"]
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://*.ngrok-free.app",
-    "http://192.168.0.103:8000/"
-]
+CSRF_TRUSTED_ORIGINS = ["https://*.ngrok-free.app", "http://192.168.0.103:8000/"]
 
 
-
-AUTH_USER_MODEL = 'chat.User'
+AUTH_USER_MODEL = "chat.User"
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     )
 }
 
-# Thumbnail uploads
-MEDIA_ROOT = BASE_DIR / 'media'
-MEDIA_URL = '/media/'
+
 
 # Daphne
-ASGI_APPLICATION = 'core.asgi.application'
+ASGI_APPLICATION = "core.asgi.application"
 
 # Channels
 # CHANNEL_LAYERS = {
@@ -60,72 +61,128 @@ ASGI_APPLICATION = 'core.asgi.application'
 # }
 
 
-
 CHANNEL_LAYERS = {
-
-    'default':{
-        'BACKEND':'channels.layers.InMemoryChannelLayer',
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
-
 
 
 # Application definition
 
 INSTALLED_APPS = [
-	'daphne',
-	'rest_framework',
-	'rest_framework_simplejwt',
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-
-	'chat'
+    "daphne",
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "chat",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'core.urls'
+ROOT_URLCONF = "core.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'core.wsgi.application'
+WSGI_APPLICATION = "core.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+
+# Thumbnail uploads
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media" 
+
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [
+    BASE_DIR / "static", 
+]
+
+
+CLOUDFLARE_R2_BUCKET = config("CLOUDFLARE_R2_BUCKET")
+CLOUDFLARE_R2_BUCKET_ENDPOINT = config("CLOUDFLARE_R2_BUCKET_ENDPOINT")  # e.g., https://<account_id>.r2.cloudflarestorage.com
+CLOUDFLARE_R2_ACCESS_KEY = config("CLOUDFLARE_R2_ACCESS_KEY")
+CLOUDFLARE_R2_SECRET_KEY = config("CLOUDFLARE_R2_SECRET_KEY")
+
+# Construct Base URL for file access
+AWS_S3_BASE_URL = f"{CLOUDFLARE_R2_BUCKET_ENDPOINT}/{CLOUDFLARE_R2_BUCKET}"
+
+CLOUDFLARE_R2_CONFIG_OPTIONS = {
+    "bucket_name": config("CLOUDFLARE_R2_BUCKET"),
+    "default_acl": "public-read",  # ya "private" agar sirf presigned links chahiye
+    "signature_version": "s3v4",
+    "endpoint_url": config("CLOUDFLARE_R2_BUCKET_ENDPOINT"),
+    "access_key": config("CLOUDFLARE_R2_ACCESS_KEY"),
+    "secret_key": config("CLOUDFLARE_R2_SECRET_KEY"),
+}
+
+STORAGES = {
+    "default": {  # user uploads
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": CLOUDFLARE_R2_CONFIG_OPTIONS,
+    },
+    "staticfiles": {  # admin + project static files local hi
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {
+            "location": STATIC_ROOT,
+        },
+    },
+}
+
+# Explicitly select storages so behavior is deterministic:
+# - DEFAULT_FILE_STORAGE controls where uploaded media (thumbnails, message files) are stored/served from.
+#   Use your custom Cloudflare R2 media storage class (helpers.cloudflare.storages.MediaFileStorage)
+#   so uploaded media go to R2.
+# - STATICFILES_STORAGE controls how collectstatic stores static files. For admin to serve local files
+#   from /static/, ensure STATICFILES_STORAGE points to the filesystem static storage (or whitenoise's
+#   CompressedManifestStaticFilesStorage in production).
+DEFAULT_FILE_STORAGE = "helpers.cloudflare.storages.MediaFileStorage"
+
+# Keep admin/static files served locally. If you later want to push admin static to R2, set this to
+# your static storage backend instead (and run collectstatic).
+STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+
+# Note:
+# - Remove any legacy DEFAULT_FILE_STORAGE env-based configuration that may override these settings.
+# - After changing these settings run: python manage.py collectstatic --noinput
+# - If using a frontend CDN (Cloudflare), purge its cache so updated /static/ files are served.
 
 
 # Password validation
@@ -133,16 +190,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -150,25 +207,16 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
-STATIC_URL = 'static/'
-
-# Add this for collectstatic inside Docker
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
