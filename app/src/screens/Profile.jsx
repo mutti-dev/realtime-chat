@@ -18,6 +18,7 @@ function ProfileImage() {
 	const theme = useTheme();
 	const uploadThumbnail = useGlobal(state => state.uploadThumbnail)
 	const user = useGlobal(state => state.user)
+
 	const updateUser = useGlobal(state => state.updateUser);
 
 	return (
@@ -87,7 +88,7 @@ function ProfileImage() {
 				padding: 4,
 			}}>
 				<Thumbnail
-					url={user.thumbnail}
+					url={user.thumbnail_url}
 					size={160}
 				/>
 			</View>

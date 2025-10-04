@@ -4,7 +4,6 @@ from .models import User, Connection, Message
 from django.conf import settings
 
 
-
 class SignUpSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -33,9 +32,10 @@ class SignUpSerializer(serializers.ModelSerializer):
         return user
 
 
+# ---------------- USER ----------------
 class UserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
-    thumbnail = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -43,7 +43,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id',
             'username',
             'name',
-            'thumbnail',
+            'thumbnail_url',   # ✅ changed from "thumbnail"
             'is_online',
             'last_online',
             'is_admin',
@@ -57,19 +57,19 @@ class UserSerializer(serializers.ModelSerializer):
         lname = (obj.last_name or '').capitalize()
         return (fname + ' ' + lname).strip()
 
-    def get_thumbnail(self, obj):
-        val = getattr(obj, "thumbnail", None)
-        request = self.context.get("request")
+    def get_thumbnail_url(self, obj):
+        """Return presigned URL for R2-stored thumbnail"""
+        val = getattr(obj, "thumbnail", None)  # now stores R2 key
+        if not val:
+            return None
         try:
-            if hasattr(val, "url"):
-                return request.build_absolute_uri(val.url) if request else val.url
-            if isinstance(val, str) and (val.startswith("http://") or val.startswith("https://")):
-                return val
+            from chat.utils import generate_r2_presigned_url
+            return generate_r2_presigned_url(val, expires_in=3600)
         except Exception:
-            pass
-        return None
+            return None
 
 
+# ---------------- SEARCH ----------------
 class SearchSerializer(UserSerializer):
     status = serializers.SerializerMethodField()
 
@@ -78,7 +78,7 @@ class SearchSerializer(UserSerializer):
         fields = [
             'username',
             'name',
-            'thumbnail',
+            'thumbnail_url',
             'status'
         ]
 
@@ -92,6 +92,7 @@ class SearchSerializer(UserSerializer):
         return 'no-connection'
 
 
+# ---------------- CONNECTION REQUEST ----------------
 class RequestSerializer(serializers.ModelSerializer):
     sender = UserSerializer()
     receiver = UserSerializer()
@@ -101,6 +102,7 @@ class RequestSerializer(serializers.ModelSerializer):
         fields = ['id', 'sender', 'receiver', 'created']
 
 
+# ---------------- FRIEND ----------------
 class FriendSerializer(serializers.ModelSerializer):
     friend = serializers.SerializerMethodField()
     preview = serializers.SerializerMethodField()
@@ -126,9 +128,10 @@ class FriendSerializer(serializers.ModelSerializer):
         return date.isoformat()
 
 
+# ---------------- MESSAGE ----------------
 class MessageSerializer(serializers.ModelSerializer):
     is_me = serializers.SerializerMethodField()
-    presigned_file_url = serializers.SerializerMethodField()  # New field
+    presigned_file_url = serializers.SerializerMethodField()
     file_type = serializers.SerializerMethodField()
 
     class Meta:
@@ -140,7 +143,7 @@ class MessageSerializer(serializers.ModelSerializer):
             "created",
             "presigned_file_url",
             "file_type",
-            "file_key",
+            "file_key",   # ✅ store raw key in DB
             "mime_type",
             "size",
             "status",
@@ -149,18 +152,12 @@ class MessageSerializer(serializers.ModelSerializer):
     def get_is_me(self, obj):
         return self.context["user"] == obj.user
 
-    # def get_file_url(self, obj):
-    #     """Return static Cloudflare R2/S3 file URL if file_key exists"""
-    #     if not obj.file_key:
-    #         return None
-    #     return f"{settings.AWS_S3_BASE_URL}/{obj.file_key}"
-
     def get_presigned_file_url(self, obj):
         """Return a temporary pre-signed URL if file_key exists"""
         if not obj.file_key:
             return None
         from chat.utils import generate_r2_presigned_url
-        return generate_r2_presigned_url(obj.file_key, expires_in=3600)  # 1 hour expiry
+        return generate_r2_presigned_url(obj.file_key, expires_in=3600)
 
     def get_file_type(self, obj):
         """Detect file type (image, video, audio, document)"""
@@ -178,7 +175,7 @@ class MessageSerializer(serializers.ModelSerializer):
         return "document"
 
 
-
+# ---------------- PROFILE UPDATE ----------------
 class ProfileUpdateSerializer(serializers.Serializer):
     first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
     last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)

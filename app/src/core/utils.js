@@ -16,13 +16,32 @@ function log() {
 	}
 }
 
+// function thumbnail(url) {
+// 	if (!url) {
+// 		return ProfileImage
+// 	}
+// 	return {
+// 		uri: 'https://' + ADDRESS + url
+// 	}
+// }
+
+
 function thumbnail(url) {
-	if (!url) {
-		return ProfileImage
-	}
-	return {
-		uri: 'https://' + ADDRESS + url
-	}
+	if (!url) return { uri: null, type: null };
+
+  // Determine raw uri
+  const raw =
+    typeof url === "string"
+      ? url
+      : url?.uri || url?.file_url || url?.url || String(url);
+
+  let uri = raw || null;
+
+  // Prefix ADDRESS for relative paths (keeps original behavior)
+  if (uri && !uri.match(/^[a-zA-Z]+:\/\//)) {
+    // keep same prefix pattern you had before
+    uri = `http://${ADDRESS}${uri.startsWith("/") ? "" : "/"}${uri}`;
+  }
 }
 
 function image(url) {
@@ -164,4 +183,29 @@ function getFileType(file) {
 }
 
 
-export default { log, thumbnail, formatTime, image, resolvePreviewUri, getFileType }
+/**
+ * Normalize media object/string into { uri, type } safely.
+ * Returns { uri: null, type: null } if media is falsy.
+ */
+export function normalizeMedia(media) {
+  console.log("normalizeMedia called with:", media);
+  if (!media) return { uri: null, type: null };
+
+  const raw =
+    typeof media === "string"
+      ? media
+      : media?.uri || media?.presigned_file_url || media?.file_url || media?.url || String(media);
+
+  let uri = raw || null;
+
+  if (uri && !uri.match(/^[a-zA-Z]+:\/\//)) {
+    uri = `http://${ADDRESS}${uri.startsWith("/") ? "" : "/"}${uri}`;
+  }
+
+  const type = uri ? getFileType(uri) : null;
+  return { uri, type };
+}
+
+
+
+export default { log, thumbnail, formatTime, image, resolvePreviewUri, getFileType, normalizeMedia }

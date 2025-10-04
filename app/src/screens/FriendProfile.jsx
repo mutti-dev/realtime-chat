@@ -56,7 +56,7 @@ const FriendProfile = ({ route }) => {
           <View style={styles.avatarContainer}>
             <View style={styles.avatarBorder}>
               <Thumbnail
-                url={details.thumbnail}
+                url={details.thumbnail_url}
                 size={120}
                 placeholder={details.name}
               />

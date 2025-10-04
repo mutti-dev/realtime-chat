@@ -11,7 +11,7 @@ from .models import Connection, Message
 from .serializers import MessageSerializer
 from .consumers import ChatConsumer
 from django.conf import settings
-from chat.utils import upload_to_r2, generate_r2_presigned_url
+from chat.utils import upload_to_r2, generate_r2_presigned_url, extract_r2_key
 
 def get_auth_for_user(user):
     tokens = RefreshToken.for_user(user)
@@ -91,6 +91,7 @@ class ProfileAPIView(APIView):
         """
 
         print("Profile update request data:", request.data.get('thumbnail'))
+        print("Profile update request files:", request.data)
         user = request.user
         
         if not user or not user.is_authenticated:
@@ -101,37 +102,31 @@ class ProfileAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        # Support a single "name" field from client and split into first/last if provided
-        name = request.data.get("name")
-        if name and "first_name" not in data and "last_name" not in data:
-            parts = name.strip().split(" ", 1)
-            data["first_name"] = parts[0]
-            data["last_name"] = parts[1] if len(parts) > 1 else ""
 
+
+       
         try:
             with transaction.atomic():
                 thumbnail_file = request.FILES.get('thumbnail')
                 if thumbnail_file:
-                    # Try upload to R2 if configured, otherwise fall back to default storage.save()
-                    from chat.utils import upload_to_r2
                     r2_url = upload_to_r2(thumbnail_file, prefix="thumbnails/")
                     if r2_url:
-                        # store the external URL string in the field name (serializer will handle returning it)
-                        user.thumbnail = r2_url
+                        file_key = extract_r2_key(r2_url, settings.CLOUDFLARE_R2_BUCKET)
+                        presigned_url = generate_r2_presigned_url(file_key)
+                        user.thumbnail = file_key   # store the key in DB
                     else:
+                        print("🎈 R2 upload failed, using default storage for thumbnail")
                         user.thumbnail.save(thumbnail_file.name, thumbnail_file, save=False)
 
-                # basic name fields
                 if 'first_name' in data:
                     user.first_name = data.get('first_name') or ''
                 if 'last_name' in data:
                     user.last_name = data.get('last_name') or ''
 
-                # password change (use set_password)
+
                 if 'password' in data and data.get('password'):
                     user.set_password(data.get('password'))
 
-                # theme / notifications
                 if 'theme' in data:
                     if hasattr(user, 'theme'):
                         user.theme = data.get('theme')
@@ -139,7 +134,6 @@ class ProfileAPIView(APIView):
                     if hasattr(user, 'notifications_enabled'):
                         user.notifications_enabled = bool(data.get('notifications_enabled'))
 
-                # arbitrary settings JSON
                 if 'settings' in data:
                     if hasattr(user, 'settings'):
                         # merge existing settings with incoming

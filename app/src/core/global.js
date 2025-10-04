@@ -658,6 +658,7 @@ const useGlobal = create((set, get) => ({
       }
 
       // Send request
+      console.log("sendFile: uploading", { filename, url, connectionId });
       const resp = await fetch(url, {
         method: "POST",
         headers, // don't set Content-Type; fetch handles it
@@ -671,7 +672,9 @@ const useGlobal = create((set, get) => ({
         );
       }
 
-      return await resp.json();
+      const json = await resp.json();
+      console.log("sendFile: server response", json);
+      return json;
     } catch (err) {
       console.error("sendFile error:", err);
       throw err;

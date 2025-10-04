@@ -3,26 +3,19 @@ from django.conf import settings
 import boto3
 from botocore.config import Config
 from uuid import uuid4
+from urllib.parse import urlparse
+
 
 def upload_to_r2(file_obj, prefix="uploads/"):
     """
-    Upload a Django UploadedFile-like object to Cloudflare R2 using boto3.
-    Returns the public URL (string) on success, or None if upload fails.
+    Uploads file to R2 and returns the object key (not URL).
     """
-
     try:
-        # Get R2 settings from Django settings
-        bucket = getattr(settings, "CLOUDFLARE_R2_BUCKET", None)
-        endpoint = getattr(settings, "CLOUDFLARE_R2_BUCKET_ENDPOINT", None)
-        access_key = getattr(settings, "CLOUDFLARE_R2_ACCESS_KEY", None)
-        secret_key = getattr(settings, "CLOUDFLARE_R2_SECRET_KEY", None)
-        base_url = getattr(settings, "AWS_S3_BASE_URL", None)  # e.g., https://<endpoint>/<bucket>
+        bucket = settings.CLOUDFLARE_R2_BUCKET
+        endpoint = settings.CLOUDFLARE_R2_BUCKET_ENDPOINT
+        access_key = settings.CLOUDFLARE_R2_ACCESS_KEY
+        secret_key = settings.CLOUDFLARE_R2_SECRET_KEY
 
-        if not all([bucket, endpoint, access_key, secret_key]):
-            print("R2 settings missing, skipping upload.")
-            return None
-
-        # Initialize boto3 S3 client with SigV4 (Cloudflare R2 requires SigV4)
         client_config = Config(signature_version="s3v4")
         client = boto3.client(
             "s3",
@@ -32,35 +25,22 @@ def upload_to_r2(file_obj, prefix="uploads/"):
             config=client_config,
         )
 
-        # Generate a unique key for the file
         key = f"{prefix}{uuid4().hex}_{file_obj.name}"
 
-        # Read file content
         if hasattr(file_obj, "open"):
             file_obj.open()
         body = file_obj.read()
 
-        # Determine content type
-        content_type = getattr(file_obj, "content_type", None) or getattr(file_obj, "mimetype", None) or "application/octet-stream"
+        content_type = getattr(file_obj, "content_type", None) or "application/octet-stream"
 
-        # Upload to R2
-        client.put_object(
-            Bucket=bucket,
-            Key=key,
-            Body=body,
-            ContentType=content_type
-        )
+        client.put_object(Bucket=bucket, Key=key, Body=body, ContentType=content_type)
 
-        # Construct URL
-        if base_url:
-            return f"{base_url.rstrip('/')}/{key}"
-        else:
-            # fallback if AWS_S3_BASE_URL not set
-            return f"{endpoint.rstrip('/')}/{bucket}/{key}"
+        return key  # ✅ only key returned
 
     except Exception as e:
         print("R2 upload failed:", e)
         return None
+
 
 
 
@@ -108,3 +88,16 @@ def generate_r2_presigned_url(file_key: str, expires_in: int = 3600) -> str:
     except Exception as e:
         print("Failed to generate pre-signed URL:", e)
         return None
+    
+
+
+# If you prefer upload_to_r2 to still return a full URL (for some cases), 
+# then in your code before generating presigned URL, strip it back down to the key:
+def extract_r2_key(url: str, bucket: str) -> str:
+    """
+    Extract object key from a full R2 URL.
+    """
+    path = urlparse(url).path  # e.g. "/mybucket/uploads/uuid_file.png"
+    if path.startswith(f"/{bucket}/"):
+        return path[len(bucket)+2:]  # strip "/bucket/"
+    return path.lstrip("/")

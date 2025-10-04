@@ -28,7 +28,7 @@ function FriendRow({ navigation, item }) {
 		>
 			<View style={styles.friendRow}>
 				<View style={styles.thumbnailContainer}>
-					<Thumbnail url={item.friend.thumbnail} size={56} />
+					<Thumbnail url={item.friend.thumbnail_url} size={56} />
 				</View>
 
 				<View style={styles.friendInfo}>

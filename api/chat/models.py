@@ -11,20 +11,14 @@ def upload_thumbnail(instance, filename):
 
 
 class User(AbstractUser):
-	thumbnail = models.ImageField(
-		upload_to=upload_thumbnail,
-		null=True,
-		blank=True
-	)
+	thumbnail = models.CharField(max_length=500, blank=True, null=True)
 	is_online = models.BooleanField(default=False)
-	# make last_online nullable and controllable (was auto_now=True)
 	last_online = models.DateTimeField(null=True, blank=True)
 	is_admin = models.BooleanField(default=False)
 
-	# User preference fields
 	theme = models.CharField(max_length=10, choices=(('light','Light'),('dark','Dark')), null=True, blank=True)
 	notifications_enabled = models.BooleanField(default=True)
-	# Generic place to store additional settings if needed
+
 	settings = models.JSONField(null=True, blank=True)
 
 

@@ -9,8 +9,10 @@ import {
   Image,
   Dimensions,
   PanResponder,
-  Alert
+  Alert,
+  Platform,
 } from "react-native";
+import * as FileSystem from "expo-file-system";
 import {
   faTimes,
   faFile,
@@ -230,14 +232,34 @@ function MessageInput({ message, setMessage, onSend, theme, connectionId }) {
 
   const sendSelectedFile = async () => {
     if (!selectedFile) return;
+    try {
+      // Ensure Android content:// URIs are converted to file:// in cache
+      let fileToSend = selectedFile; 
+      const uri = selectedFile.uri;
+      if (Platform.OS === "android" && uri && uri.startsWith("content://")) {
+        const filename = selectedFile.name || uri.split("/").pop() || `file-${Date.now()}`;
+        const dest = FileSystem.cacheDirectory + filename;
+        try {
+          const downloaded = await FileSystem.downloadAsync(uri, dest);
+          fileToSend = { ...selectedFile, uri: downloaded.uri };
+        } catch (err) {
+          console.warn("Failed to copy content URI to cache, trying original uri", err);
+          // fallback to original uri
+        }
+      }
 
-    await sendFileGlobal({
-      file: selectedFile,
-      connectionId
-    });
+      const resp = await sendFileGlobal({
+        file: fileToSend,
+        connectionId,
+      });
 
-    setSelectedFile(null);
-    setShowPreview(false);
+      // Optionally handle resp if needed
+      setSelectedFile(null);
+      setShowPreview(false);
+    } catch (err) {
+      console.error("sendSelectedFile error:", err);
+      Alert.alert("Upload failed", "Failed to upload file. Please try again.");
+    }
   };
 
   const cancelFileSelection = () => {
