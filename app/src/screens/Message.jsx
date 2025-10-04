@@ -35,8 +35,8 @@ function MessageHeader({ friend }) {
 				activeOpacity={0.7}
 			>
 				<Thumbnail url={friend.thumbnail_url} size={40} />
-			</TouchableOpacity>
 
+			</TouchableOpacity>
 			<View style={{ marginLeft: 12, flexShrink: 1 }}>
 				<Text style={styles.friendName} numberOfLines={1}>
 					{friend.name}
@@ -49,6 +49,7 @@ function MessageHeader({ friend }) {
 							: "Offline"}
 				</Text>
 			</View>
+
 		</View>
 	);
 }
@@ -65,7 +66,7 @@ const MessageBubbleMe = React.memo(({ text, file, onFilePress, isSending }) => {
 
 	return (
 		<View style={styles.rowRight}>
-			
+
 
 			{file ? (
 				<TouchableOpacity onPress={openFile} activeOpacity={0.8}>

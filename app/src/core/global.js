@@ -40,7 +40,7 @@ function responseMessageSend(set, get, data) {
   );
   if (friendIndex >= 0) {
     const item = friendList[friendIndex];
-    item.preview = data.message.text;
+    item.preview = data.message.text || "image";
     item.updated = data.message.created;
     friendList.splice(friendIndex, 1);
     friendList.unshift(item);

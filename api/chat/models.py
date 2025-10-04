@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from groupchat.models import ChatGroup, GroupMember
 
 
 def upload_thumbnail(instance, filename):
@@ -48,6 +49,12 @@ class Message(models.Model):
         related_name="messages",
         on_delete=models.CASCADE,
     )
+    group = models.ForeignKey(
+        ChatGroup,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
     user = models.ForeignKey(
         User,
         related_name="my_messages",
@@ -56,11 +63,11 @@ class Message(models.Model):
     text = models.TextField(blank=True, default="")
     created = models.DateTimeField(auto_now_add=True)
     file = models.FileField(upload_to="messages/files/", blank=True, null=True)
-    presigned_file_url = models.CharField(max_length=100, blank=True, null=True) 
-    file_key = models.CharField(max_length=500, blank=True, null=True)   
-    mime_type = models.CharField(max_length=100, blank=True, null=True)  
-    size = models.PositiveIntegerField(blank=True, null=True)            
-    status = models.CharField(                                         
+    presigned_file_url = models.CharField(max_length=100, blank=True, null=True)
+    file_key = models.CharField(max_length=500, blank=True, null=True)
+    mime_type = models.CharField(max_length=100, blank=True, null=True)
+    size = models.PositiveIntegerField(blank=True, null=True)
+    status = models.CharField(
         max_length=20,
         choices=(
             ("sent", "Sent"),
@@ -73,6 +80,7 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.user.username}: {self.text[:30]}"
+
 
 
 

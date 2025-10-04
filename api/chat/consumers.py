@@ -1,21 +1,11 @@
-import base64
 import json
-import io
-import os
-import uuid
-import imghdr
 from django.utils import timezone
-import mimetypes
-
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
-from django.core.files.base import ContentFile
 from django.db.models import Q, Exists, OuterRef
 from django.db.models.functions import Coalesce
 from channels.layers import get_channel_layer
-
-from .models import User, Connection, Message, AiMessage
-
+from .models import User, Connection, Message
 from .serializers import (
     UserSerializer,
     SearchSerializer,
@@ -25,17 +15,9 @@ from .serializers import (
 )
 
 
-import sys
-from PIL import Image
-
-
 class ChatConsumer(WebsocketConsumer):
 
-    # New file / image limits (adjust as needed)
-    MAX_THUMBNAIL_BYTES = 2 * 1024 * 1024  # 2 MB for profile thumbnails
-    MAX_IMAGE_BYTES = 8 * 1024 * 1024  # 8 MB for chat images
-    MAX_VIDEO_BYTES = 10 * 1024 * 1024  # 10 MB for video files
-    MAX_IMAGE_WIDTH = 1280  # max width to resize images to
+
 
     def connect(self):
         user = self.scope["user"]
@@ -73,8 +55,7 @@ class ChatConsumer(WebsocketConsumer):
         data = json.loads(text_data)
         data_source = data.get("source")
 
-        # Pretty print  python dict
-        # print("receive", json.dumps(data, indent=2))
+    
 
         # Get friend list
         if data_source == "friend.list":
@@ -118,6 +99,8 @@ class ChatConsumer(WebsocketConsumer):
 
         else:
             self.send(text_data=json.dumps({"error": "Invalid source"}))
+
+
 
     def receive_friend_list(self, data):
         user = self.scope["user"]
@@ -189,7 +172,6 @@ class ChatConsumer(WebsocketConsumer):
             print("Error: couldn't find connection")
             return
 
-        # ✅ Only text messages allowed here (no file saving)
         message = Message.objects.create(
             connection=connection,
             user=user,
@@ -445,15 +427,6 @@ class ChatConsumer(WebsocketConsumer):
     # ----------------------------
     #      class methods
     # ----------------------------
-
-    # @classmethod
-    # def receive_message_type(cls, user, recipient_username):
-    #     """
-    #     user: User instance (sender)
-    #     recipient_username: str, username of recipient
-    #     """
-    #     data = {"username": user.username}
-    #     cls.send_group(recipient_username, "message.type", data)
 
     @classmethod
     def send_group(cls, group, source, data):

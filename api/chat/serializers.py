@@ -43,7 +43,9 @@ class UserSerializer(serializers.ModelSerializer):
             'id',
             'username',
             'name',
-            'thumbnail_url',   # ✅ changed from "thumbnail"
+            'first_name',
+            'last_name',
+            'thumbnail_url',
             'is_online',
             'last_online',
             'is_admin',

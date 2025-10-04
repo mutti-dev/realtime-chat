@@ -15,6 +15,8 @@ import utils from "../core/utils";
 import useGlobal from "../core/global";
 
 function FriendRow({ navigation, item }) {
+
+	console.log("🎄Item", item);
 	const theme = useTheme();
 	const styles = getStyles(theme);
 
