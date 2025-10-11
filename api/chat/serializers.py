@@ -49,8 +49,6 @@ class UserSerializer(serializers.ModelSerializer):
             'is_online',
             'last_online',
             'is_admin',
-            'theme',
-            'notifications_enabled',
             'settings',
         ]
 

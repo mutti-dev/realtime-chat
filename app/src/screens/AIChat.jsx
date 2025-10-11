@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
-import useGlobal from "../core/global";
+import useGlobal from "../store";
 import { useTheme } from "react-native-paper";
 import Thumbnail from "../common/Thumbnail"
 import { Image } from "react-native"

@@ -18,7 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import Thumbnail from "../common/Thumbnail";
 import FilePreview from "../component/FilePreview";
 import MessageInput from "../component/MessageInput";
-import useGlobal from "../core/global";
+import useGlobal from "../store"
 import utils from "../core/utils";
 import MediaViewer from "../component/MediaViewer";
 
@@ -34,7 +34,7 @@ function MessageHeader({ friend }) {
 				onPress={() => navigation.navigate("FriendProfile", { details: friend })}
 				activeOpacity={0.7}
 			>
-				<Thumbnail url={friend.thumbnail_url} size={40} />
+				<Thumbnail url={friend?.thumbnail_url || friend?.presigned_file_url} size={40} />
 
 			</TouchableOpacity>
 			<View style={{ marginLeft: 12, flexShrink: 1 }}>
@@ -82,7 +82,7 @@ const MessageBubbleMe = React.memo(({ text, file, onFilePress, isSending }) => {
 				</View>
 			)}
 			<View style={styles.thumbnailWrap}>
-				<Thumbnail url={user.thumbnail_url} size={36} />
+				<Thumbnail url={user?.thumbnail_url || user?.presigned_file_url} size={36} />
 			</View>
 		</View>
 	);
@@ -108,7 +108,7 @@ const MessageBubbleFriend = React.memo(({ text = "", friend, typing = false, fil
 	return (
 		<View style={styles.rowLeft}>
 			<View style={styles.thumbnailWrap}>
-				<Thumbnail url={friend.thumbnail_url} size={36} />
+				<Thumbnail url={friend?.thumbnail_url || friend?.presigned_file_url} size={36} />
 			</View>
 
 			<View style={styles.bubbleFriend}>
@@ -172,7 +172,7 @@ function MessageBubble({ index, message, friend, globalOpenFile }) {
 	const [isSending, setIsSending] = useState(false);
 	const messagesTyping = useGlobal(state => state.messagesTyping);
 
-	console.log("✨Rendering MessageBubble for message:", message);
+	// console.log("✨Rendering MessageBubble for message:", message);
 
 	// openFile used by wrapper; accepts a file-like param
 	const openFile = useCallback(

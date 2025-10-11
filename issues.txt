@@ -2,4 +2,8 @@ Working on Group chat feature.
 
 Almost completed the backend Need to start working integerating in front end now
 
+
+
+group is not creating..
+Dark and notification not updating from settings
 =========================================================

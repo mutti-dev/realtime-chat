@@ -28,7 +28,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
-import useGlobal from "../core/global";
+import useGlobal from "../store";
 
 const { width: screenWidth } = Dimensions.get('window');
 

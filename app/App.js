@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 
-
 import "./src/core/fontawesome";
 
 import { NavigationContainer } from "@react-navigation/native";
@@ -15,7 +14,7 @@ import MessagesScreen from "./src/screens/Message";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import useGlobal from "./src/core/global";
+import useGlobal from "./src/store";
 
 import { MD3LightTheme, MD3DarkTheme } from "react-native-paper";
 import { useColorScheme } from "react-native";
@@ -25,6 +24,9 @@ import { PaperProvider } from "react-native-paper";
 import AIChatScreen from "./src/screens/AIChat";
 import RequestsScreen from "./src/screens/Requests";
 import FriendProfile from "./src/screens/FriendProfile";
+import GroupList from "./src/screens/GroupList";
+import GroupChat from "./src/screens/GroupMessage";
+import CreateGroup from "./src/screens/CreateGroup";
 
 const LightTheme = {
   ...MD3LightTheme,
@@ -62,15 +64,13 @@ function App() {
   useEffect(() => {
     init();
   }, []);
+  // console.log("Initialized:", initialized, "User:", user);
 
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
         <NavigationContainer theme={theme}>
-          <StatusBar
-            barStyle="light-content"
-            translucent={true}
-          />
+          <StatusBar barStyle="light-content" translucent={true} />
           <Stack.Navigator>
             {!initialized ? (
               <>
@@ -98,6 +98,25 @@ function App() {
 
                 <Stack.Screen name="Notifications" component={RequestsScreen} />
                 <Stack.Screen name="AiChat" component={AIChatScreen} />
+                <Stack.Screen
+                  name="GroupChat"
+                  component={GroupChat}
+                  options={({ route }) => ({
+                    title: route.params.groupName,
+                    headerShown: true,
+                  })}
+                />
+
+                <Stack.Screen
+                  name="GroupList"
+                  component={GroupList}
+                  options={{ title: "Groups" }}
+                />
+                <Stack.Screen
+                  name="CreateGroup"
+                  component={CreateGroup}
+                  options={{ title: "Create Group" }}
+                />
               </>
             )}
           </Stack.Navigator>

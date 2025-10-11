@@ -11,7 +11,7 @@ import Input from "../common/Input"
 import Button from "../common/Button"
 import api from "../core/api"
 import utils from "../core/utils"
-import useGlobal from "../core/global"
+import useGlobal from "../store"
 import CustomLoader from "../common/CustomLoader"
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from "react-native-paper"

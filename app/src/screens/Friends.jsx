@@ -12,11 +12,11 @@ import {
 import { useTheme } from "react-native-paper";
 import Thumbnail from "../common/Thumbnail";
 import utils from "../core/utils";
-import useGlobal from "../core/global";
+import useGlobal from "../store"
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faUserPlus } from "@fortawesome/free-solid-svg-icons";
 
 function FriendRow({ navigation, item }) {
-
-	console.log("🎄Item", item);
 	const theme = useTheme();
 	const styles = getStyles(theme);
 
@@ -50,6 +50,7 @@ function FriendRow({ navigation, item }) {
 
 function FriendsScreen({ navigation }) {
 	const friendList = useGlobal((state) => state.friendList);
+	
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const theme = useTheme();
@@ -143,13 +144,13 @@ function FriendsScreen({ navigation }) {
 			<TouchableOpacity
 				style={styles.floatingButton}
 				onPress={() => {
-					// Handle new chat action
-					console.log("New chat pressed");
+					navigation.navigate("CreateGroup");
 				}}
 				activeOpacity={0.8}
 			>
-				<Text style={styles.floatingButtonText}>+</Text>
+				<FontAwesomeIcon icon={faUserPlus} color="white" size={30}/>
 			</TouchableOpacity>
+
 		</SafeAreaView>
 	);
 }
@@ -277,8 +278,8 @@ function getStyles(theme) {
 		},
 		floatingButton: {
 			position: 'absolute',
-			bottom: 34,
-			right: 20,
+			bottom: "25%",
+			right: "5%",
 			width: 56,
 			height: 56,
 			borderRadius: 28,

@@ -4,7 +4,7 @@ import { View, Text, Image, TouchableOpacity, ScrollView, Animated, Alert } from
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker'
 import * as ImageManipulator from 'expo-image-manipulator'
-import useGlobal from "../core/global"
+import useGlobal from "../store"
 import utils from "../core/utils"
 import Thumbnail from "../common/Thumbnail"
 import { useTheme } from "react-native-paper";

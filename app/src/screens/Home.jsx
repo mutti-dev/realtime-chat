@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import RequestsScreen from "./Requests";
 import FriendsScreen from "./Friends";
 import ProfileScreen from "./Profile";
-import useGlobal from "../core/global";
+import useGlobal from "../store";
 
 import { useTheme } from "react-native-paper";
 import SettingsScreen from './Settings';
@@ -24,6 +24,9 @@ function CustomTabBar({ state, descriptors, navigation }) {
     const styles = getStyles(theme);
 
     const requestList = useGlobal(state => state.requestList);
+  
+
+
 
     const pendingCount = requestList ? requestList.length : 0;
 
@@ -141,7 +144,7 @@ function CustomHeader({ navigation, route }) {
         // }}>
 
         <LinearGradient
-            colors={theme.colors.gradients.background }
+            colors={theme.colors.gradients.background}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{

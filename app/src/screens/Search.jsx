@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import Icon from "react-native-vector-icons/FontAwesome";
 import { useTheme } from "react-native-paper"
 import Thumbnail from "../common/Thumbnail"
-import useGlobal from "../core/global"
+import useGlobal from "../store"
 import { useNavigation } from "@react-navigation/native"
 import BackButton from "../common/BackButton";
 

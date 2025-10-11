@@ -1,5 +1,5 @@
 import { ActivityIndicator, FlatList, View, Text, TouchableOpacity } from "react-native"
-import useGlobal from "../core/global"
+import useGlobal from "../store"
 import Empty from "../common/Empty"
 import Cell from "../common/Cell"
 import Thumbnail from "../common/Thumbnail"
