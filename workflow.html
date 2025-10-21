@@ -1,0 +1,653 @@
+<!--
+Firaas App - Interactive Mobile Prototype
+Single-file HTML mockup that demonstrates flows described in the project plan.
+This file is interactive in-browser (no backend) and simulates:
+ - Auth flow (Register -> PIN) with username verification against a mock list
+ - Login flow (email+password -> PIN)
+ - Dashboard with bottom tabs: Chats, Groups, Profile
+ - One-to-one chat (send messages, disappearing messages toggle, read receipts simulation)
+ - Group creation flow (select mock contacts)
+ - Settings: Theme toggle (light/dark), Privacy toggles
+ - Admin panel preview (read-only) accessible from Profile (for demo purposes)
+
+Notes: This is a front-end prototype only. All encryption, server, and device-binding
+logic is simulated and indicated visually (lock icons, "Encrypted" badges).
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Firaas — Interactive Mobile Prototype</title>
+  <style>
+    :root{
+      --primary:#2C6BED; --primary-600:#5890FF; --bg:#FFFFFF; --muted:#6C6C70; --card:#F6F6F6; --danger:#FF3B30;
+      --dark-bg:#000000; --dark-secondary:#1C1C1E; --dark-text:#FFFFFF; --dark-muted:#8E8E93;
+      --glass: rgba(255,255,255,0.6);
+    }
+    *{box-sizing:border-box;font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    body{margin:0;background:linear-gradient(180deg,#f3f6ff 0%, #eef2ff 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px}
+    .frame{width:390px;height:812px;border-radius:36px;overflow:hidden;box-shadow:0 30px 80px rgba(16,24,40,0.25);position:relative;background:var(--bg)}
+
+    /* top status bar */
+    .status{height:44px;background:linear-gradient(180deg, rgba(44,107,237,0.08), transparent);display:flex;align-items:center;justify-content:space-between;padding:8px 14px}
+    .status .left{display:flex;gap:8px;align-items:center}
+    .dot{width:10px;height:10px;border-radius:50%;background:var(--primary);box-shadow:0 0 10px rgba(44,107,237,0.25)}
+    .status .time{font-weight:600;color:var(--muted)}
+
+    /* main area */
+    .screen{padding:18px;height:724px;overflow:auto}
+
+    .card{background:var(--card);padding:14px;border-radius:14px;margin-bottom:12px}
+    h1{font-size:18px;margin-bottom:6px}
+    p.lead{color:var(--muted);font-size:13px}
+
+    /* auth screens */
+    .center{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%}
+    .input{width:100%;padding:12px;border-radius:10px;border:1px solid #e6e6ee;margin-bottom:10px}
+    .btn{display:inline-block;background:var(--primary);color:white;padding:12px 16px;border-radius:12px;border:none;cursor:pointer;font-weight:600}
+    .btn.ghost{background:transparent;color:var(--primary);border:1px solid var(--primary)}
+
+    /* bottom nav */
+    .bottom-nav{height:64px;background:linear-gradient(180deg,rgba(0,0,0,0.02),transparent);display:flex;align-items:center;justify-content:space-around;padding:8px;border-top:1px solid rgba(0,0,0,0.04)}
+    .nav-item{display:flex;flex-direction:column;align-items:center;font-size:12px;color:var(--muted);gap:4px}
+    .nav-item.active{color:var(--primary);font-weight:700}
+
+    /* chat list */
+    .chat-list{display:flex;flex-direction:column;gap:10px}
+    .chat-row{display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;background:linear-gradient(180deg,#fff,#fbfdff);cursor:pointer}
+    .avatar{width:46px;height:46px;border-radius:50%;background:#dfe9ff;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary)}
+    .meta{flex:1}
+    .meta .name{font-weight:700}
+    .meta .preview{font-size:13px;color:var(--muted)}
+    .badge{background:var(--primary);color:#fff;padding:6px 8px;border-radius:999px;font-size:12px}
+
+    /* chat screen */
+    .chat-header{display:flex;align-items:center;gap:12px;padding:8px 0}
+    .messages{display:flex;flex-direction:column;gap:8px;padding:10px 0;margin-bottom:10px}
+    .msg{max-width:70%;padding:10px;border-radius:16px;line-height:1.3}
+    .sent{align-self:flex-end;background:var(--primary);color:white;border-bottom-right-radius:4px}
+    .recv{align-self:flex-start;background:#f0f0f3;color:#111;border-bottom-left-radius:4px}
+    .timestamp{font-size:11px;color:var(--muted);margin-top:6px;text-align:right}
+
+    .composer{display:flex;gap:8px;align-items:center;padding:10px;border-radius:14px;background:#f6f6f9}
+    .composer input{flex:1;padding:10px;border-radius:10px;border:1px solid #eaeaf0}
+
+    /* small helper */
+    .pill{display:inline-block;background:#eef3ff;padding:6px 10px;border-radius:999px;font-size:12px;color:var(--primary);font-weight:600}
+
+    /* modal */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center}
+    .modal{width:340px;background:var(--bg);padding:16px;border-radius:12px;box-shadow:0 20px 60px rgba(2,6,23,0.25)}
+    .contact-list{max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .contact-row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px}
+
+    /* small screens */
+    @media (prefers-color-scheme: dark){
+      body{background:linear-gradient(180deg,#020617 0%, #071126 100%)}
+      .frame{background:var(--dark-secondary);}
+      .card{background:#0f1720;color:var(--dark-text)}
+    }
+
+    /* hidden helper */
+    .hidden{display:none}
+
+    /* tiny icons */
+    .icon{width:18px;height:18px;display:inline-block}
+    .chip{background:#f2f4ff;padding:6px 10px;border-radius:999px;font-size:12px}
+
+    /* read receipt small */
+    .small-muted{font-size:11px;color:#9aa0b4}
+
+  </style>
+</head>
+<body>
+  <div class="frame" id="app">
+    <div class="status">
+      <div class="left"><span class="dot"></span><div class="time" id="statusTime">9:41</div></div>
+      <div class="right small-muted">Firaas Prototype</div>
+    </div>
+
+    <!-- MAIN SCREENS (only one shown at a time) -->
+    <div class="screen" id="screenArea">
+
+      <!-- Welcome / Landing -->
+      <div id="screen-welcome" class="screen-view">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div>
+            <h1>Welcome to Firaas</h1>
+            <p class="lead">Private institutional messaging — Signal-inspired. Try the interactive demo.</p>
+          </div>
+          <div class="pill">Secure</div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div style="width:70px;height:70px;border-radius:14px;background:linear-gradient(135deg,#eef6ff,#e6f0ff);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--primary)">F</div>
+            <div>
+              <strong>Firaas App</strong>
+              <div class="small-muted">Private & Verified Members Only</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button class="btn" onclick="goTo('login')">Login</button>
+            <button class="btn ghost" onclick="goTo('register')">Create Account</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <strong>Demo quick actions</strong>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn ghost" onclick="prefill('alice@example.com','password123')">Prefill Alice</button>
+            <button class="btn ghost" onclick="prefill('bob@example.com','secret321')">Prefill Bob</button>
+            <button class="btn ghost" onclick="mockVerifyUser('alice')">Verify username 'alice' (DB)</button>
+          </div>
+          <p class="small-muted" style="margin-top:8px">This prototype simulates flows and state locally. No data is sent to any server.</p>
+        </div>
+
+        <div class="card">
+          <strong>Project Snapshot</strong>
+          <p class="small-muted" style="margin-top:8px">Shows timeline, auth, chats, groups, admin panel and basic security UI elements from your Project Plan.</p>
+        </div>
+      </div>
+
+      <!-- Register -->
+      <div id="screen-register" class="screen-view hidden">
+        <div class="center">
+          <h1>Create account</h1>
+          <input class="input" id="regEmail" placeholder="Email" />
+          <input class="input" id="regPassword" type="password" placeholder="Password" />
+          <input class="input" id="regRePassword" type="password" placeholder="Re-enter Password" />
+          <div style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="agree"/><label for="agree" style="font-size:13px">I Agree to Rules</label></div>
+          <div style="width:100%;display:flex;gap:8px">
+            <input class="input" id="regUsername" placeholder="Username (pre-registered)" />
+            <button class="btn ghost" onclick="checkUsername()">Verify</button>
+          </div>
+          <div id="usernameStatus" class="small-muted" style="margin-bottom:8px"></div>
+          <button class="btn" onclick="register()">Continue (Profile Setup)</button>
+
+          <div style="margin-top:12px;font-size:13px;color:var(--muted)">Already have account? <a href="#" onclick="goTo('login')">Login</a></div>
+        </div>
+      </div>
+
+      <!-- Profile setup (stepper) -->
+      <div id="screen-profile-setup" class="screen-view hidden">
+        <h1>Profile setup</h1>
+        <p class="lead">Step 1 of 3 — Enter Full Name</p>
+        <input class="input" id="fullName" placeholder="Full name" />
+        <p class="lead">Step 2 — Display Picture (auto/generate)</p>
+        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+          <div id="dpPreview" style="width:72px;height:72px;border-radius:16px;background:#f0f4ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--primary)">AI</div>
+          <div>
+            <button class="btn ghost" onclick="generateDP()">Auto-generate</button>
+            <button class="btn ghost" onclick="uploadDP()">Upload (demo)</button>
+          </div>
+        </div>
+        <p class="lead">Step 3 — Create PIN (6 digits)</p>
+        <input class="input" id="pin1" placeholder="Create PIN (6-digit)" />
+        <input class="input" id="pin2" placeholder="Confirm PIN" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" onclick="finishSetup()">Finish</button>
+          <button class="btn ghost" onclick="goTo('welcome')">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Login -->
+      <div id="screen-login" class="screen-view hidden">
+        <div class="center">
+          <h1>Login</h1>
+          <input class="input" id="loginEmail" placeholder="Email" />
+          <input class="input" id="loginPassword" type="password" placeholder="Password" />
+          <button class="btn" onclick="attemptLogin()">Login</button>
+          <div style="margin-top:10px;font-size:13px;color:var(--muted)"><a href="#" onclick="goTo('forgot')">Forgot Password/OTP</a></div>
+        </div>
+      </div>
+
+      <!-- Forgot (OTP simulation) -->
+      <div id="screen-forgot" class="screen-view hidden">
+        <h1>Forgot Password</h1>
+        <p class="small-muted">Enter email to receive OTP (simulated)</p>
+        <input class="input" id="forgotEmail" placeholder="Email" />
+        <button class="btn" onclick="sendOTP()">Send OTP</button>
+      </div>
+
+      <!-- PIN verification -->
+      <div id="screen-pin" class="screen-view hidden">
+        <div class="center">
+          <h1>Enter PIN</h1>
+          <input class="input" id="enterPin" placeholder="6-digit PIN" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" onclick="verifyPin()">Verify</button>
+            <button class="btn ghost" onclick="logoutTo('welcome')">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN APP: Dashboard (Chats) -->
+      <div id="screen-home" class="screen-view hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div>
+            <h1>Chats</h1>
+            <p class="lead">Encrypted • Auto-delete: 30 days</p>
+          </div>
+          <div>
+            <button class="btn ghost" onclick="openCreateGroup()">New Group</button>
+          </div>
+        </div>
+
+        <div class="card chat-list" id="chatsContainer">
+          <!-- chat rows populated by JS -->
+        </div>
+
+        <div style="height:12px"></div>
+        <div class="card">
+          <strong>Quick demo</strong>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn" onclick="openChat('alice')">Open Alice</button>
+            <button class="btn" onclick="openChat('bob')">Open Bob</button>
+            <button class="btn ghost" onclick="openSelfNote()">Open Note to Self</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Chat view -->
+      <div id="screen-chat" class="screen-view hidden">
+        <div class="chat-header">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="avatar" id="chatAvatar">A</div>
+            <div>
+              <div id="chatName" style="font-weight:800">Alice</div>
+              <div class="small-muted" id="chatSub">Online • Encrypted</div>
+            </div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <div class="chip" id="encryptionChip">AES-256</div>
+            <button class="btn ghost" onclick="toggleDisappearing()" id="disappearBtn">Disappearing: Off</button>
+          </div>
+        </div>
+
+        <div class="messages card" id="messagesBox" style="height:420px;overflow:auto">
+          <!-- messages appended here -->
+        </div>
+
+        <div class="composer">
+          <button class="btn ghost" onclick="attach()">+</button>
+          <input placeholder="Type a message" id="composeInput" />
+          <button class="btn" onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+
+      <!-- Groups view -->
+      <div id="screen-groups" class="screen-view hidden">
+        <h1>Groups</h1>
+        <p class="lead">Manage group chats and announcements</p>
+        <div class="card">
+          <strong>Firaas Updates</strong>
+          <p class="small-muted">Announcement-only group. Auto-added for every user.</p>
+        </div>
+        <div class="card">
+          <strong>Your Groups</strong>
+          <div style="margin-top:8px">(Demo: no user-created groups yet)</div>
+        </div>
+      </div>
+
+      <!-- Profile -->
+      <div id="screen-profile" class="screen-view hidden">
+        <h1>Profile</h1>
+        <div class="card" style="display:flex;gap:12px;align-items:center">
+          <div class="avatar" id="profileAvatar">F</div>
+          <div>
+            <strong id="profileName">Demo User</strong>
+            <div class="small-muted" id="profileUsername">@demo</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <strong>Privacy Settings</strong>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            <label><input type="checkbox" id="toggleRead" checked/> Read receipts</label>
+            <label><input type="checkbox" id="toggleLastSeen" checked/> Last seen</label>
+            <label><input type="checkbox" id="toggleScreenRec"/> Block screen recording</label>
+          </div>
+        </div>
+
+        <div class="card">
+          <strong>App Theme</strong>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" onclick="setTheme('light')">Light</button>
+            <button class="btn ghost" onclick="setTheme('dark')">Dark</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <strong>Admin Panel (preview)</strong>
+          <div style="margin-top:8px">Active users: <span id="adminActive">3</span> • Groups: 1</div>
+          <div style="margin-top:8px"><button class="btn ghost" onclick="openAdmin()">Open Admin</button></div>
+        </div>
+
+        <div style="height:30px"></div>
+      </div>
+
+      <!-- Admin modal / preview -->
+      <div id="modal-admin" class="overlay hidden" onclick="closeAdmin(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+          <h3>Admin Panel (preview)</h3>
+          <div style="margin-top:8px" class="small-muted">User management, reports, analytics snapshot</div>
+          <div style="margin-top:12px">
+            <strong>Users</strong>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <div class="chip">alice</div>
+              <div class="chip">bob</div>
+              <div class="chip">demo</div>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <strong>Reports</strong>
+            <div class="small-muted" style="margin-top:6px">No reports in demo</div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn ghost" onclick="closeAdmin()">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create group modal -->
+      <div id="modal-group" class="overlay hidden" onclick="closeModal('modal-group', event)">
+        <div class="modal" onclick="event.stopPropagation()">
+          <h3>Create Group</h3>
+          <div style="margin-top:8px" class="small-muted">Select members (demo contacts)</div>
+          <div class="contact-list" id="contactsList"></div>
+          <input class="input" id="groupName" placeholder="Group name" />
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+            <button class="btn" onclick="createGroup()">Create</button>
+            <button class="btn ghost" onclick="closeModal('modal-group')">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generic overlay used for OTP and others -->
+      <div id="modal-generic" class="overlay hidden" onclick="closeModal('modal-generic', event)">
+        <div class="modal" onclick="event.stopPropagation()" id="genericContent">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- bottom nav always present in the frame, but can be hidden on some screens -->
+    <div class="bottom-nav" id="bottomNav">
+      <div class="nav-item active" id="navChats" onclick="navTo('home')"> 
+        <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M4 4h16v10H7l-3 3V4z"></path></svg>
+        Chats
+      </div>
+      <div class="nav-item" id="navGroups" onclick="navTo('groups')">
+        <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 12v2a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-2"></path></svg>
+        Groups
+      </div>
+      <div class="nav-item" id="navProfile" onclick="navTo('profile')">
+        <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM4 20v-1a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v1"></path></svg>
+        Profile
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Mock data and simple local-state store
+    const db = {
+      preRegisteredUsernames: ['alice','bob','demo','admin'],
+      users:[
+        {email:'alice@example.com',password:'password123',username:'alice',name:'Alice Noor'},
+        {email:'bob@example.com',password:'secret321',username:'bob',name:'Bob Khan'},
+      ],
+      contacts:[{username:'alice',name:'Alice Noor'},{username:'bob',name:'Bob Khan'},{username:'demo',name:'Demo User'}],
+      chats:{
+        'alice':[{id:1,from:'alice',text:'Hello! This message is encrypted.',ts:'09:40',read:true},{id:2,from:'me',text:'Hi Alice — received.',ts:'09:41',read:true}],
+        'bob':[{id:1,from:'bob',text:'Hey, are you free for the meeting?',ts:'08:58',read:false}]
+      }
+    };
+
+    // app state
+    let state = {
+      currentScreen:'welcome',
+      loggedIn:false,
+      currentUser:null,
+      pendingAuth:{},
+      currentChat:null,
+      disappearing:false,
+      theme:'light'
+    }
+
+    // helper to switch screen
+    function showScreen(id){
+      document.querySelectorAll('.screen-view').forEach(el=>el.classList.add('hidden'));
+      const el = document.getElementById(id);
+      if(el) el.classList.remove('hidden');
+      state.currentScreen = id;
+      // hide bottom nav on auth screens
+      const hideNav = ['screen-login','screen-register','screen-pin','screen-profile-setup','screen-forgot','screen-welcome'].includes(id);
+      document.getElementById('bottomNav').style.display = hideNav? 'none':'flex';
+
+      // update nav active
+      document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+      if(id==='screen-home') document.getElementById('navChats').classList.add('active');
+      if(id==='screen-groups') document.getElementById('navGroups').classList.add('active');
+      if(id==='screen-profile') document.getElementById('navProfile').classList.add('active');
+
+      // populate chats
+      if(id==='screen-home') renderChats();
+    }
+
+    function goTo(view){
+      if(view==='login') showScreen('screen-login');
+      if(view==='register') showScreen('screen-register');
+      if(view==='welcome') showScreen('screen-welcome');
+    }
+
+    // navigation from bottom
+    function navTo(tab){
+      if(!state.loggedIn){ alert('Please login to access app'); return }
+      if(tab==='home') showScreen('screen-home');
+      if(tab==='groups') showScreen('screen-groups');
+      if(tab==='profile') showScreen('screen-profile');
+    }
+
+    // prefills
+    function prefill(email,password){
+      document.getElementById('loginEmail').value=email;
+      document.getElementById('loginPassword').value=password;
+      alert('Prefilled credentials — click Login to continue')
+    }
+
+    function mockVerifyUser(name){
+      if(db.preRegisteredUsernames.includes(name)) alert("Username '"+name+"' exists in pre-registered DB")
+      else alert("Username not found")
+    }
+
+    // Register flow
+    function checkUsername(){
+      const u = document.getElementById('regUsername').value.trim();
+      const el = document.getElementById('usernameStatus');
+      if(!u){ el.textContent='Enter a username to check'; return }
+      if(db.preRegisteredUsernames.includes(u)){
+        el.innerHTML = "<span style='color:green;font-weight:700'>&#10003; Verified</span>";
+      } else {
+        el.innerHTML = "<span style='color:#ff3b30'>&#10005; Not pre-registered</span>"
+      }
+    }
+
+    function register(){
+      const email = document.getElementById('regEmail').value.trim();
+      const pw = document.getElementById('regPassword').value;
+      const rpw = document.getElementById('regRePassword').value;
+      const username = document.getElementById('regUsername').value.trim();
+      const agreed = document.getElementById('agree').checked;
+      if(!email || !pw || !rpw || !username){ alert('Please fill all fields'); return }
+      if(pw!==rpw){ alert('Passwords do not match'); return }
+      if(!agreed){ alert('You must agree to rules'); return }
+      if(!db.preRegisteredUsernames.includes(username)){ alert('Username must be pre-registered (demo)'); return }
+      // store pending
+      state.pendingAuth = {email,pw,username};
+      showScreen('screen-profile-setup');
+    }
+
+    function generateDP(){ document.getElementById('dpPreview').textContent = state.pendingAuth.username?.charAt(0)?.toUpperCase() || 'U' }
+    function uploadDP(){ alert('Upload simulated — use Auto-generate for demo') }
+
+    function finishSetup(){
+      const fullName = document.getElementById('fullName').value.trim();
+      const pin1 = document.getElementById('pin1').value.trim();
+      const pin2 = document.getElementById('pin2').value.trim();
+      if(!fullName || !pin1 || !pin2) { alert('Complete all steps'); return }
+      if(pin1!==pin2 || pin1.length<4){ alert('PINs must match and be 4+ digits (demo)'); return }
+      // create user in demo db
+      const u = {email:state.pendingAuth.email,password:state.pendingAuth.pw,username:state.pendingAuth.username,name:fullName};
+      db.users.push(u);
+      db.preRegisteredUsernames.push(state.pendingAuth.username);
+      alert('Account created — proceed to login');
+      state.pendingAuth = {};
+      showScreen('screen-login');
+    }
+
+    // Login
+    function attemptLogin(){
+      const email = document.getElementById('loginEmail').value.trim();
+      const pw = document.getElementById('loginPassword').value;
+      const u = db.users.find(x=>x.email===email && x.password===pw);
+      if(!u){ alert('Invalid credentials (demo)'); return }
+      // store and ask for PIN
+      state.currentUser = u; state.loggedIn = false; // not verified until PIN
+      showScreen('screen-pin');
+    }
+
+    function verifyPin(){
+      const pin = document.getElementById('enterPin').value.trim();
+      // demo: accept any pin
+      if(!pin){ alert('Enter PIN'); return }
+      state.loggedIn = true;
+      showScreen('screen-home');
+      document.getElementById('profileName').textContent = state.currentUser.name || state.currentUser.username;
+      document.getElementById('profileUsername').textContent = '@' + state.currentUser.username;
+    }
+
+    function logoutTo(target){ state.currentUser=null; state.loggedIn=false; showScreen(target||'screen-welcome'); }
+
+    // Chats rendering
+    function renderChats(){
+      const container = document.getElementById('chatsContainer'); container.innerHTML='';
+      const keys = Object.keys(db.chats);
+      keys.forEach(k=>{
+        const messages = db.chats[k];
+        const last = messages[messages.length-1];
+        const row = document.createElement('div'); row.className='chat-row'; row.onclick = ()=>openChat(k);
+        row.innerHTML = `<div class='avatar'>${k.charAt(0).toUpperCase()}</div><div class='meta'><div class='name'>${k}</div><div class='preview'>${last.text}</div></div><div class='small-muted'>${last.ts}</div>`;
+        container.appendChild(row);
+      })
+    }
+
+    // Open chat
+    function openChat(username){
+      if(!state.loggedIn){ alert('Login first'); return }
+      state.currentChat = username; showScreen('screen-chat');
+      document.getElementById('chatAvatar').textContent = username.charAt(0).toUpperCase();
+      document.getElementById('chatName').textContent = username;
+      document.getElementById('chatSub').textContent = 'Last seen: 09:45 • Encrypted';
+      renderMessages();
+    }
+
+    function renderMessages(){
+      const box = document.getElementById('messagesBox'); box.innerHTML='';
+      const msgs = db.chats[state.currentChat] || [];
+      msgs.forEach(m=>{
+        const div = document.createElement('div'); div.className='msg '+(m.from==='me'?'sent':'recv');
+        div.innerHTML = `<div>${m.text}</div><div class='timestamp'>${m.ts}${m.from==='me' ? (m.read? ' • Read':' • Sent') : ''}</div>`;
+        box.appendChild(div);
+      })
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendMessage(){
+      const input = document.getElementById('composeInput'); const text = input.value.trim(); if(!text) return;
+      // append to chat (simulate encryption + send)
+      if(!db.chats[state.currentChat]) db.chats[state.currentChat]=[];
+      const now = new Date(); const ts = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+      db.chats[state.currentChat].push({id:Date.now(),from:'me',text:text,ts:ts,read:false});
+      input.value=''; renderMessages();
+      // simulate remote delivery and read receipt after timeout
+      setTimeout(()=>{
+        // remote replies automatically for demo
+        db.chats[state.currentChat].push({id:Date.now()+2,from:state.currentChat,text:'(Auto-reply) Received: '+text,ts:ts,read:true});
+        // mark sent message as read
+        const sent = db.chats[state.currentChat].find(m=>m.from==='me' && !m.read);
+        if(sent) sent.read = true;
+        renderMessages();
+      },1200);
+
+      // if disappearing ON, schedule delete
+      if(state.disappearing){
+        setTimeout(()=>{
+          // remove the message we sent
+          db.chats[state.currentChat] = db.chats[state.currentChat].filter(m=>m.from!=='me' || m.text!==text);
+          renderMessages();
+        },5000); // short demo timer
+      }
+    }
+
+    function toggleDisappearing(){ state.disappearing = !state.disappearing; document.getElementById('disappearBtn').textContent = 'Disappearing: ' + (state.disappearing? 'On':'Off'); }
+
+    function openSelfNote(){ openChat('demo'); }
+
+    // Group flow
+    function openCreateGroup(){
+      document.getElementById('modal-group').classList.remove('hidden');
+      const list = document.getElementById('contactsList'); list.innerHTML='';
+      db.contacts.forEach(c=>{
+        const row = document.createElement('div'); row.className='contact-row';
+        row.innerHTML = `<label style='display:flex;gap:10px;align-items:center;width:100%'><input type='checkbox' data-username='${c.username}' /> <div style='font-weight:700'>${c.name}</div><div style='margin-left:auto;color:var(--muted)'>@${c.username}</div></label>`;
+        list.appendChild(row);
+      })
+    }
+    function createGroup(){
+      const checked = Array.from(document.querySelectorAll('#contactsList input[type=checkbox]:checked')).map(i=>i.dataset.username);
+      const name = document.getElementById('groupName').value.trim();
+      if(!name || checked.length<1){ alert('Choose at least one member and a group name'); return }
+      alert('Group "'+name+'" created with members: '+checked.join(', '));
+      closeModal('modal-group');
+    }
+
+    function closeModal(id,event){ if(event && event.target!==document.getElementById(id)) return; document.getElementById(id).classList.add('hidden'); }
+
+    // Admin modal
+    function openAdmin(){ document.getElementById('modal-admin').classList.remove('hidden'); }
+    function closeAdmin(e){ if(e) e.stopPropagation(); document.getElementById('modal-admin').classList.add('hidden'); }
+
+    // OTP simulate
+    function sendOTP(){ const email = document.getElementById('forgotEmail').value.trim(); if(!email){ alert('Enter email'); return };
+      showGenericModal(`<h3>OTP Sent (demo)</h3><div class='small-muted'>A simulated OTP was sent to ${email}. Enter any code to continue.</div><input class='input' id='otpInput' placeholder='Enter OTP' /><div style='display:flex;gap:8px;justify-content:flex-end;margin-top:8px'><button class='btn' onclick="verifyOtp()">Verify</button><button class='btn ghost' onclick="closeModal('modal-generic')">Cancel</button></div>`);
+    }
+    function showGenericModal(html){ document.getElementById('genericContent').innerHTML = html; document.getElementById('modal-generic').classList.remove('hidden'); }
+    function verifyOtp(){ const code = document.getElementById('otpInput').value.trim(); if(!code){ alert('Enter OTP'); return } alert('OTP accepted (demo) — reset password flow would proceed'); closeModal('modal-generic'); }
+
+    // Attach demo
+    function attach(){ alert('Attach file dialog (simulated)'); }
+
+    // Open admin and others
+    function openAdmin(){ document.getElementById('modal-admin').classList.remove('hidden'); }
+
+    function openProfile(){ showScreen('screen-profile'); }
+
+    function setTheme(t){ state.theme = t; if(t==='dark'){ document.body.style.background='linear-gradient(180deg,#020617 0%, #071126 100%)'; document.querySelector('.frame').style.background='var(--dark-secondary)'; } else { document.body.style.background='linear-gradient(180deg,#f3f6ff 0%, #eef2ff 100%)'; document.querySelector('.frame').style.background='var(--bg)'; } }
+
+    // Admin close helper
+    function closeAdmin() { document.getElementById('modal-admin').classList.add('hidden'); }
+
+    // small utilities
+    function openSelfNote(){ openChat('demo'); }
+
+    // initialization
+    showScreen('screen-welcome');
+
+  </script>
+</body>
+</html>
